@@ -81,8 +81,6 @@ void MainWindow::launchProgram()
         outFile.flush();
         outFile.close();
 
-        //process->waitForFinished(2000);
-        ui->plainTextEdit->setPlainText(outFilePath);
         ui->statusBar->showMessage(fileNames.at(i) + " done!");
     }
 
