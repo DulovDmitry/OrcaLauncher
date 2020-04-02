@@ -15,6 +15,7 @@
 #include <QFont>
 #include <QIcon>
 #include <QDateTime>
+#include <QTextEdit>
 
 QStringList fileList;
 QStringList fileNames;
@@ -41,6 +42,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->tableWidget->setColumnWidth(0, 229);
     ui->tableWidget->setColumnWidth(1, 100);
+
+    ui->plainTextEdit->setPlainText("\nPlease select an input file in the left window (Input files queue) to start editing");
 }
 
 MainWindow::~MainWindow()

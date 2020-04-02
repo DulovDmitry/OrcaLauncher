@@ -463,7 +463,7 @@
      </font>
     </property>
     <property name="text">
-     <string>Load files</string>
+     <string>Add files</string>
     </property>
    </widget>
    <widget class="QTableWidget" name="tableWidget">
