@@ -695,12 +695,24 @@
     </property>
     <addaction name="actionSet_Orca_directory"/>
    </widget>
+   <widget class="QMenu" name="menuInfo">
+    <property name="title">
+     <string>Info</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
    <addaction name="menuSettings"/>
+   <addaction name="menuInfo"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionSet_Orca_directory">
    <property name="text">
     <string>Set path to orca.exe</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
    </property>
   </action>
  </widget>

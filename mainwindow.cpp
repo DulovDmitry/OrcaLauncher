@@ -16,6 +16,7 @@
 #include <QIcon>
 #include <QDateTime>
 #include <QTextEdit>
+#include <QThread>
 
 QStringList fileList;
 QStringList fileNames;
@@ -36,6 +37,24 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    launcher = new OrcaLauncher();
+
+    infodialog = new InfoDialog();
+    connect(this, SIGNAL(initializeTableInInfoWindow(QStringList,QStringList)),
+            infodialog, SLOT(initializeTable(QStringList,QStringList)));
+    connect(launcher, SIGNAL(renewTableInInfoWindow()),
+            infodialog, SLOT(renewTable()));
+
+    writingtofilethread = new QThread(this);
+    connect(this, SIGNAL(destroyed()),
+            writingtofilethread, SLOT(quit()));
+
+    connect(this, SIGNAL(orcaLauncherSignal()),
+            launcher, SLOT(launchProgram()));
+
+    launcher->moveToThread(writingtofilethread);
+    writingtofilethread->start();
+
     setWindowTitle("OrcaLauncher");
     QIcon *programIcon = new QIcon("C:/Users/Dima/Documents/OrcaLauncher/programIcon.png");
     setWindowIcon(*programIcon);
@@ -51,10 +70,17 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::launchProgram()
+OrcaLauncher::OrcaLauncher(QObject *parent)
+{
+
+}
+
+void OrcaLauncher::launchProgram()
 {
     for (int i = 0; i < fileList.size(); ++i)
     {
+        emit renewTableInInfoWindow();
+
         QString outFilePath = filePaths.at(i) + "/" + fileNames.at(i) + ".out";
 
         QProcess *process = new QProcess(this);
@@ -83,16 +109,15 @@ void MainWindow::launchProgram()
 
         outFile.flush();
         outFile.close();
-
-        ui->statusBar->showMessage(fileNames.at(i) + " done!");
     }
 
+    emit renewTableInInfoWindow();
 
 }
 
 void MainWindow::on_pushButton_clicked()                                                            // клик по кнопке Load Files
 {
-    QStringList loaded_file_names = QFileDialog::getOpenFileNames(this, "Select files", lastDir, filter);    // записываем имена+пути открытых файлов
+    QStringList loaded_file_names = QFileDialog::getOpenFileNames(this, "Add files in queue", lastDir, filter);    // записываем имена+пути открытых файлов
     fileList.append(loaded_file_names);                                                                     // добавляем имена+пути открытых файлов в общий список
 
     if (loaded_file_names.isEmpty())
@@ -125,13 +150,11 @@ void MainWindow::on_pushButton_clicked()                                        
 
         fileThread.append(QString::number(i));
 
-        //QListWidgetItem *listitem = new QListWidgetItem(fileNames.at(fileCounter));
         QTableWidgetItem *nametableitem = new QTableWidgetItem(fileNames.at(fileCounter));
         QTableWidgetItem *threadstableitem = new QTableWidgetItem(fileThread.at(fileCounter));
 
         ui->tableWidget->setItem(fileCounter, 0, nametableitem);
         ui->tableWidget->setItem(fileCounter, 1, threadstableitem);
-        //ui->listWidget->addItem(listitem);
 
         ui->tableWidget->setRowHeight(fileCounter, 25);
     }
@@ -190,6 +213,7 @@ void MainWindow::on_pushButton_4_clicked()                                      
         fileList.move(current_row, current_row-1);
         fileNames.move(current_row, current_row-1);
         fileThread.move(current_row, current_row-1);
+        fileBodies.move(current_row, current_row-1);
 
         for (int i = 0; i < fileCounter; i++)
         {
@@ -214,6 +238,7 @@ void MainWindow::on_pushButton_5_clicked()                                      
         fileList.move(current_row, current_row+1);
         fileNames.move(current_row, current_row+1);
         fileThread.move(current_row, current_row+1);
+        fileBodies.move(current_row, current_row+1);
 
         for (int i = 0; i < fileCounter; i++)
         {
@@ -247,8 +272,10 @@ void MainWindow::on_pushButton_9_clicked()                                      
     {
         if (orcaDir.contains("orca.exe"))
         {
-            ui->statusBar->showMessage("run");
-            launchProgram();
+            infodialog->show();
+            emit initializeTableInInfoWindow(fileNames, fileThread);
+            emit orcaLauncherSignal();
+            this->showMinimized();
         }
         else
             QMessageBox::warning(this, "", "Please specify the path to orca.exe in the settings");
@@ -278,6 +305,9 @@ void MainWindow::on_pushButton_6_clicked()                                      
             i++;
             if (i > maxThreads) break;
         }
+
+        if (i == maxThreads+1)
+            i = 1;
 
         fileThread.replace(current_row, QString::number(i));
         QTableWidgetItem *threadstableitem = new QTableWidgetItem(fileThread.at(current_row));
@@ -316,6 +346,10 @@ void MainWindow::on_pushButton_8_clicked()                                      
         i++;
         if (i > maxThreads) break;
     }
+
+    if (i == maxThreads+1)
+        i = 1;
+
     fileThread.append(QString::number(i));
 
     ui->tableWidget->setRowCount(fileList.size());
@@ -330,4 +364,9 @@ void MainWindow::on_pushButton_8_clicked()                                      
     ui->tableWidget->selectRow(fileCounter);
 
     fileCounter++;
+}
+
+void MainWindow::on_actionAbout_triggered()                                                         // клик по кнопке About
+{
+    QMessageBox::information(this, "About OrcaLauncher", "OrcaLauncher v1.1.0");
 }
