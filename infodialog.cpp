@@ -13,7 +13,7 @@ InfoDialog::InfoDialog(QWidget *parent) :
     ui->setupUi(this);
     currentTask = 0;
 
-    setWindowTitle("OrcaLauncher Info");
+    setWindowTitle("OrcaLauncher Queue status");
     QIcon *programIcon = new QIcon("C:/Users/Dima/Documents/OrcaLauncher/programIcon.png");
     setWindowIcon(*programIcon);
 
@@ -24,20 +24,20 @@ InfoDialog::~InfoDialog()
     delete ui;
 }
 
-void InfoDialog::initializeTable(QStringList taskNames, QStringList taskThreads)
+void InfoDialog::initializeTable(QStringList taskNames, QStringList taskPaths, QStringList taskThreads)        // метод, который создает таблицу в информационном окне
 {
     QRect rec = QApplication::desktop()->screenGeometry();
 
     setFixedHeight(taskNames.size()*25 + 60);
-    this->move(rec.width() - 366, rec.height() - taskNames.size()*25 - 100);
+    this->move(rec.width() - 366, rec.height() - taskNames.size()*25 - 100);                        // помещаем окно в правый нижний угол
 
     ui->tableWidget->setFixedHeight(taskNames.size()*25 + 30);
     ui->tableWidget->setRowCount(taskNames.size());
     ui->tableWidget->setColumnWidth(0, 209);
     ui->tableWidget->setColumnWidth(1, 50);
-    ui->tableWidget->setColumnWidth(2, 70);
+    ui->tableWidget->setColumnWidth(2, 70);                                                         // настраиваем внешний вид таблицы
 
-    for (int i = 0; i < taskNames.size(); ++i)
+    for (int i = 0; i < taskNames.size(); ++i)                                                      // заполняем таблицу
     {
         QTableWidgetItem *nametableitem = new QTableWidgetItem(taskNames.at(i));
         QTableWidgetItem *threadstableitem = new QTableWidgetItem(taskThreads.at(i));
@@ -53,18 +53,28 @@ void InfoDialog::initializeTable(QStringList taskNames, QStringList taskThreads)
     ui->tableWidget->setColumnWidth(0, 194);
 }
 
-void InfoDialog::renewTable()
+void InfoDialog::renewTable()                                                           // метод, который обновляет таблицу при завершении очередной задачи
 {
-    QTableWidgetItem *statustableitem = new QTableWidgetItem("In progress");
+    QTableWidgetItem *statustableitem = new QTableWidgetItem("In progress");                    // выполняемой задаче изменяем статус на "In progress"
     statustableitem->setBackgroundColor(QColor(255, 255, 0, 127));
     ui->tableWidget->setItem(currentTask, 2, statustableitem);
 
     if(currentTask)
     {
-        QTableWidgetItem *statustableitem2 = new QTableWidgetItem("Comlpeted");
+        QTableWidgetItem *statustableitem2 = new QTableWidgetItem("Comlpeted");                 // выполненной задаче изменяем статус на "Completed"
         statustableitem2->setBackgroundColor(QColor(0, 255, 0, 127));
         ui->tableWidget->setItem(currentTask-1, 2, statustableitem2);
     }
 
     currentTask++;
+}
+
+void InfoDialog::resetToZero()
+{
+    currentTask = 0;
+}
+
+void InfoDialog::on_tableWidget_cellDoubleClicked(int row, int column)
+{
+    sublLaunchSignal(row);
 }

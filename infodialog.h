@@ -3,6 +3,7 @@
 
 #include <QDialog>
 
+
 namespace Ui {
 class InfoDialog;
 }
@@ -16,9 +17,17 @@ public:
     ~InfoDialog();
 
 public slots:
-    void initializeTable(QStringList taskNames, QStringList taskThreads);
+    void initializeTable(QStringList taskNames, QStringList taskPaths, QStringList taskThreads);
 
     void renewTable();
+
+    void resetToZero();
+
+private slots:
+    void on_tableWidget_cellDoubleClicked(int row, int column);
+
+signals:
+    void sublLaunchSignal(int selectedRow);
 
 private:
     Ui::InfoDialog *ui;

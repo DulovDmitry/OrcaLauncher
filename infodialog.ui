@@ -34,6 +34,9 @@
      <height>231</height>
     </rect>
    </property>
+   <property name="editTriggers">
+    <set>QAbstractItemView::NoEditTriggers</set>
+   </property>
    <column>
     <property name="text">
      <string>Task name</string>
@@ -49,6 +52,19 @@
      <string>Status</string>
     </property>
    </column>
+  </widget>
+  <widget class="QLabel" name="label">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>0</y>
+     <width>321</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Double click on file name to open Sublime Text 3</string>
+   </property>
   </widget>
  </widget>
  <resources/>

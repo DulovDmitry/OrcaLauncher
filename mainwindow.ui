@@ -513,7 +513,7 @@
     </property>
     <property name="font">
      <font>
-      <family>Segoe UI</family>
+      <family>Lucida Console</family>
       <pointsize>9</pointsize>
      </font>
     </property>
@@ -686,7 +686,7 @@
      <x>0</x>
      <y>0</y>
      <width>890</width>
-     <height>21</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuSettings">
@@ -694,6 +694,7 @@
      <string>Settings</string>
     </property>
     <addaction name="actionSet_Orca_directory"/>
+    <addaction name="actionSet_path_to_Sublime_Text"/>
    </widget>
    <widget class="QMenu" name="menuInfo">
     <property name="title">
@@ -712,7 +713,12 @@
   </action>
   <action name="actionAbout">
    <property name="text">
-    <string>About</string>
+    <string>About OrcaLauncher</string>
+   </property>
+  </action>
+  <action name="actionSet_path_to_Sublime_Text">
+   <property name="text">
+    <string>Set path to Sublime Text 3</string>
    </property>
   </action>
  </widget>

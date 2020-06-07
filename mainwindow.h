@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QSettings>
 #include "infodialog.h"
 
 namespace Ui {
@@ -21,6 +22,8 @@ public slots:
 signals:
     void renewTableInInfoWindow();
 
+    void programIsFinished();
+
 };
 
 
@@ -31,6 +34,10 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
+
+    void saveSettings();
+
+    void loadSettings();
 
 private slots:
     void on_pushButton_clicked();
@@ -57,13 +64,21 @@ private slots:
 
     void on_actionAbout_triggered();
 
+    void on_actionSet_path_to_Sublime_Text_triggered();
+
+public slots:
+    void launchSubl(int selectedRow);
+
+    void makeRunButtonAvaliable();
+
 signals:
     void orcaLauncherSignal();
 
-    void initializeTableInInfoWindow(QStringList taskNames, QStringList taskThreads);
+    void initializeTableInInfoWindow(QStringList taskNames, QStringList taskPaths, QStringList taskThreads);
 
 private:
     Ui::MainWindow *ui;
+    QSettings *settings;
     InfoDialog *infodialog;
     OrcaLauncher *launcher;
     QThread *writingtofilethread;
