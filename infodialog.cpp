@@ -2,6 +2,7 @@
 #include "ui_infodialog.h"
 #include <QWidget>
 #include <QDesktopWidget>
+#include <QMessageBox>
 
 QStringList taskStatus;
 int currentTask = 0;
@@ -28,14 +29,18 @@ void InfoDialog::initializeTable(QStringList taskNames, QStringList taskPaths, Q
 {
     QRect rec = QApplication::desktop()->screenGeometry();
 
-    setFixedHeight(taskNames.size()*25 + 60);
-    this->move(rec.width() - 366, rec.height() - taskNames.size()*25 - 100);                        // помещаем окно в правый нижний угол
+    setFixedHeight(taskNames.size()*25 + 80);
+    this->move(rec.width() - 366, rec.height() - taskNames.size()*25 - 130);                        // помещаем окно в правый нижний угол
 
     ui->tableWidget->setFixedHeight(taskNames.size()*25 + 30);
     ui->tableWidget->setRowCount(taskNames.size());
     ui->tableWidget->setColumnWidth(0, 209);
     ui->tableWidget->setColumnWidth(1, 50);
     ui->tableWidget->setColumnWidth(2, 70);                                                         // настраиваем внешний вид таблицы
+    ui->pushButton_2->setGeometry(10, taskNames.size()*25 + 55, 70, 20);
+    ui->pushButton_2->setEnabled(false);
+    ui->pushButton->setGeometry(90, taskNames.size()*25 + 55, 70, 20);
+    ui->pushButton->setEnabled(false);
 
     for (int i = 0; i < taskNames.size(); ++i)                                                      // заполняем таблицу
     {
@@ -61,12 +66,32 @@ void InfoDialog::renewTable()                                                   
 
     if(currentTask)
     {
-        QTableWidgetItem *statustableitem2 = new QTableWidgetItem("Comlpeted");                 // выполненной задаче изменяем статус на "Completed"
+        QTableWidgetItem *statustableitem2 = new QTableWidgetItem("Completed");                 // выполненной задаче изменяем статус на "Completed"
         statustableitem2->setBackgroundColor(QColor(0, 255, 0, 127));
         ui->tableWidget->setItem(currentTask-1, 2, statustableitem2);
     }
 
     currentTask++;
+    ui->pushButton_2->setEnabled(false);
+    ui->pushButton->setEnabled(false);
+}
+
+void InfoDialog::renewTableWithError()
+{
+    QTableWidgetItem *statustableitem = new QTableWidgetItem("In progress");
+    statustableitem->setBackgroundColor(QColor(255, 255, 0, 127));
+    ui->tableWidget->setItem(currentTask, 2, statustableitem);
+
+    if(currentTask)
+    {
+        QTableWidgetItem *statustableitem2 = new QTableWidgetItem("Aborted");
+        statustableitem2->setBackgroundColor(QColor(255, 0, 0, 127));
+        ui->tableWidget->setItem(currentTask-1, 2, statustableitem2);
+    }
+
+    currentTask++;
+    ui->pushButton_2->setEnabled(false);
+    ui->pushButton->setEnabled(false);
 }
 
 void InfoDialog::resetToZero()
@@ -77,4 +102,63 @@ void InfoDialog::resetToZero()
 void InfoDialog::on_tableWidget_cellDoubleClicked(int row, int column)
 {
     sublLaunchSignal(row);
+}
+
+void InfoDialog::on_tableWidget_cellClicked(int row, int column)
+{
+    if (currentTask)
+    {
+        if (row == currentTask - 1)
+            ui->pushButton->setEnabled(true);
+        else
+            ui->pushButton->setEnabled(false);
+
+        if (row > currentTask - 1)
+            ui->pushButton_2->setEnabled(true);
+        else
+            ui->pushButton_2->setEnabled(false);
+    }
+}
+
+void InfoDialog::on_pushButton_2_clicked()
+{
+    QMessageBox::StandardButton confirmation;
+    confirmation = QMessageBox::question(this,
+                                         QString("Delete %1.inp").arg(ui->tableWidget->itemAt(0, ui->tableWidget->currentRow())->text()),
+                                         QString("Are you sure you want to delete %1.inp from queue?").arg(ui->tableWidget->itemAt(0, ui->tableWidget->currentRow())->text()),
+                                         QMessageBox::Yes|QMessageBox::No);
+    if (confirmation == QMessageBox::Yes)
+    {
+        if (ui->pushButton_2->isEnabled())
+        {
+            ui->tableWidget->removeRow(ui->tableWidget->currentRow());
+            emit deleteSelectedTask(ui->tableWidget->currentRow() + 1);
+        }
+        else
+            return;
+    }
+    else
+    {
+        return;
+    }
+}
+
+void InfoDialog::on_pushButton_clicked()
+{
+    QMessageBox::StandardButton confirmation;
+    confirmation = QMessageBox::question(this,
+                                         QString("Kill %1.inp").arg(ui->tableWidget->itemAt(0, ui->tableWidget->currentRow())->text()),
+                                         QString("Are you sure you want to terminate %1.inp task?").arg(ui->tableWidget->itemAt(0, ui->tableWidget->currentRow())->text()),
+                                         QMessageBox::Yes|QMessageBox::No);
+    if (confirmation == QMessageBox::Yes)
+    {
+        if (ui->pushButton->isEnabled())
+            emit killSelectedProcess();
+        else
+            return;
+    }
+    else
+    {
+        return;
+    }
 }

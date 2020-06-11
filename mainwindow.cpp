@@ -11,7 +11,6 @@
 #include <QMessageBox>
 #include <QDialog>
 #include <QDialogButtonBox>
-#include <QProcess>
 #include <QFont>
 #include <QIcon>
 #include <QDateTime>
@@ -29,12 +28,14 @@ QString orcaDir;
 QString sublDir;
 QString filter = "Orca input files (*.inp) ;; All files (*.*)";
 
-QString aboutProgramText = "OrcaLauncher v1.1.0\n\n"
+QString aboutProgramText = "OrcaLauncher v1.1.2\n\n"
                            "This is an open source project designed to simplify commutication with ORCA quantum chemistry package\n\n"
                            "Author: Dmitry Dulov, dulov.dmitry@gmail.com";
 
 int fileCounter = 0;
 int maxThreads = 16;
+
+qint64 pid;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -50,16 +51,26 @@ MainWindow::MainWindow(QWidget *parent) :
             launcher, SLOT(launchProgram()));                                                       //
     connect(launcher, SIGNAL(programIsFinished()),
             this, SLOT(makeRunButtonAvaliable()));
+    connect(launcher, SIGNAL(programIsFinished()),
+            this, SLOT(showNormal()));
 
     infodialog = new InfoDialog();                                                                  // создаю объект класса InfoDialog
     connect(this, SIGNAL(initializeTableInInfoWindow(QStringList,QStringList,QStringList)),                     // связываю сигнал класса MainWindow со слотом класса InfoDialog, который создает таблицу в окне
             infodialog, SLOT(initializeTable(QStringList,QStringList,QStringList)));                            //
     connect(infodialog, SIGNAL(sublLaunchSignal(int)),
             this, SLOT(launchSubl(int)));
+    connect(infodialog, SIGNAL(deleteSelectedTask(int)),
+            this, SLOT(deleteFile(int)));
+    connect(this, SIGNAL(destroyed(QObject*)),
+            infodialog, SLOT(close()));
     connect(launcher, SIGNAL(renewTableInInfoWindow()),                                             // связываю сигнал класса OrcaLauncher со слотом класса InfoDialog, который обновляет данные таблицы
             infodialog, SLOT(renewTable()));                                                        //
+    connect(launcher, SIGNAL(renewTableInInfoWindowWithError()),
+            infodialog, SLOT(renewTableWithError()));
     connect(launcher, SIGNAL(programIsFinished()),
             infodialog, SLOT(resetToZero()));
+    connect(infodialog, SIGNAL(killSelectedProcess()),
+            this, SLOT(killCurrentTask()));
 
     writingtofilethread = new QThread(this);                                                        // создаю отдельный поток для записи .out файла из orca.exe
     connect(this, SIGNAL(destroyed()),
@@ -101,18 +112,18 @@ void MainWindow::loadSettings()
 
 OrcaLauncher::OrcaLauncher(QObject *parent)
 {
-
+    process = new QProcess(this);
 }
 
 void OrcaLauncher::launchProgram()  // метод, запускающий orca.exe
 {
+    emit renewTableInInfoWindow();                                                              // обновляю данные в таблице в окне с информацией об очереди задач
+
     for (int i = 0; i < fileList.size(); ++i)
     {
-        emit renewTableInInfoWindow();                                                              // обновляю данные в таблице в окне с информацией об очереди задач
-
         QString outFilePath = filePaths.at(i) + "/" + fileNames.at(i) + ".out";
 
-        QProcess *process = new QProcess(this);
+        //QProcess *process = new QProcess(this);
 
         QStringList arguments;
             arguments.append(fileNames.at(i) + ".inp");
@@ -132,15 +143,19 @@ void OrcaLauncher::launchProgram()  // метод, запускающий orca.e
 
         process->setProcessChannelMode(QProcess::MergedChannels);
         process->start();                                                                           // запускаю orca.exe
-
+        pid = process->processId();
         while(process->waitForReadyRead())                                                          // печатаю в .out файл выдачу orca.exe
             fout << process->readAll();
 
         outFile.flush();
         outFile.close();                                                                            // закрываю файл для записи
+
+        if (process->exitCode() == 0)
+            emit renewTableInInfoWindow();
+        else
+            emit renewTableInInfoWindowWithError();
     }
 
-    emit renewTableInInfoWindow();                                                                  // по завершении всех задач обновляю таблицу в окне с информацией последний раз
     emit programIsFinished();
 }
 
@@ -308,6 +323,7 @@ void MainWindow::on_pushButton_9_clicked()                                      
             emit initializeTableInInfoWindow(fileNames, filePaths, fileThread);                // создание в нем таблицы
             emit orcaLauncherSignal();                                              // запуск метода, который запускает orca.exe
             this->showMinimized();                                                  // свертывание главного окна
+            ui->plainTextEdit->clear();
         }
         else
             QMessageBox::warning(this, "", "Please specify the path to orca.exe in the settings");
@@ -457,4 +473,29 @@ void MainWindow::launchSubl(int selectedRow)
 void MainWindow::makeRunButtonAvaliable()
 {
     ui->pushButton_9->setEnabled(true);
+}
+
+void MainWindow::deleteFile(int fileNumber)
+{
+    fileList.removeAt(fileNumber);
+    fileNames.removeAt(fileNumber);
+    filePaths.removeAt(fileNumber);
+    fileBodies.removeAt(fileNumber);
+    fileThread.removeAt(fileNumber);
+    ui->tableWidget->removeRow(fileNumber);
+    fileCounter--;
+}
+
+void MainWindow::killCurrentTask()
+{
+    QStringList argum = QStringList("/PID");
+    argum.append(QString("%1").arg(pid));
+    argum.append("/F");
+    argum.append("/T");
+
+    QProcess *taskKillerProcess = new QProcess(this);
+    taskKillerProcess->setArguments(argum);
+    taskKillerProcess->setProgram("taskkill");
+
+    taskKillerProcess->start();
 }

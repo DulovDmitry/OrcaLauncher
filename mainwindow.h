@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QSettings>
+#include <QProcess>
 #include "infodialog.h"
 
 namespace Ui {
@@ -22,7 +23,12 @@ public slots:
 signals:
     void renewTableInInfoWindow();
 
+    void renewTableInInfoWindowWithError();
+
     void programIsFinished();
+
+private:
+    QProcess *process;
 
 };
 
@@ -70,6 +76,10 @@ public slots:
     void launchSubl(int selectedRow);
 
     void makeRunButtonAvaliable();
+
+    void deleteFile(int fileNumber);
+
+    void killCurrentTask();
 
 signals:
     void orcaLauncherSignal();

@@ -21,13 +21,25 @@ public slots:
 
     void renewTable();
 
+    void renewTableWithError();
+
     void resetToZero();
 
 private slots:
     void on_tableWidget_cellDoubleClicked(int row, int column);
 
+    void on_tableWidget_cellClicked(int row, int column);
+
+    void on_pushButton_2_clicked();
+
+    void on_pushButton_clicked();
+
 signals:
     void sublLaunchSignal(int selectedRow);
+
+    void deleteSelectedTask(int selectedRow);
+
+    void killSelectedProcess();
 
 private:
     Ui::InfoDialog *ui;
