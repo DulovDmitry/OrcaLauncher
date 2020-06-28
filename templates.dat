@@ -1,0 +1,20 @@
+"Single point/"
+@!PBE def2-SVP ENERGY TightSCF
+
+*xyzfile 0 1 your_file.xyz
+
+/@
+
+"Optimization/"
+@!PBE def2-SVP OPT TightOPT TightSCF
+
+*xyzfile 0 1 your_file.xyz
+
+/@
+
+"Hessian/"
+@!PBE def2-SVP TightSCF Freq
+
+*xyzfile 0 1 your_file.xyz
+
+/@

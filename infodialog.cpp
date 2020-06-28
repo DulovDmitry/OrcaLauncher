@@ -3,6 +3,7 @@
 #include <QWidget>
 #include <QDesktopWidget>
 #include <QMessageBox>
+#include <QCloseEvent>
 
 QStringList taskStatus;
 int currentTask = 0;
@@ -15,9 +16,29 @@ InfoDialog::InfoDialog(QWidget *parent) :
     currentTask = 0;
 
     setWindowTitle("OrcaLauncher Queue status");
-    QIcon *programIcon = new QIcon("C:/Users/Dima/Documents/OrcaLauncher/programIcon.png");
+    QIcon *programIcon = new QIcon(":/new/prefix1/programIcon");
     setWindowIcon(*programIcon);
 
+}
+
+void InfoDialog::closeEvent(QCloseEvent *event)
+{
+    event->ignore();
+
+    if (currentTask == 0)
+    {
+        event->accept();
+    }
+    else
+    {
+        if (QMessageBox::Yes == QMessageBox::question(this,
+                                                      "Quit",
+                                                      "All processes will be terminated and the queue will be cleared. Are you sure you want to quit?",
+                                                      QMessageBox::Yes | QMessageBox::No))
+        {
+            event->accept();
+        }
+    }
 }
 
 InfoDialog::~InfoDialog()
@@ -30,7 +51,7 @@ void InfoDialog::initializeTable(QStringList taskNames, QStringList taskPaths, Q
     QRect rec = QApplication::desktop()->screenGeometry();
 
     setFixedHeight(taskNames.size()*25 + 80);
-    this->move(rec.width() - 366, rec.height() - taskNames.size()*25 - 130);                        // помещаем окно в правый нижний угол
+    this->move(rec.width() - 366, rec.height() - taskNames.size()*25 - 160);                        // помещаем окно в правый нижний угол
 
     ui->tableWidget->setFixedHeight(taskNames.size()*25 + 30);
     ui->tableWidget->setRowCount(taskNames.size());

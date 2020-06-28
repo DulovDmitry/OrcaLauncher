@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QSettings>
 #include <QProcess>
+#include <QMap>
 #include "infodialog.h"
 
 namespace Ui {
@@ -45,6 +46,8 @@ public:
 
     void loadSettings();
 
+    QMap<QString, QString> *templatesForInputFile;
+
 private slots:
     void on_pushButton_clicked();
 
@@ -72,6 +75,14 @@ private slots:
 
     void on_actionSet_path_to_Sublime_Text_triggered();
 
+    void on_comboBox_activated(const QString &arg1);
+
+    void comboBoxFilling();
+
+    void parseFileWithTemplates();
+
+    void on_actionSet_path_to_templates_dat_triggered();
+
 public slots:
     void launchSubl(int selectedRow);
 
@@ -85,6 +96,9 @@ signals:
     void orcaLauncherSignal();
 
     void initializeTableInInfoWindow(QStringList taskNames, QStringList taskPaths, QStringList taskThreads);
+
+protected slots:
+    void closeEvent(QCloseEvent *event);
 
 private:
     Ui::MainWindow *ui;

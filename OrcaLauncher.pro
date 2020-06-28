@@ -8,10 +8,9 @@ QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-VERSION = 1.1.2
+VERSION = 1.1.3
 QMAKE_TARGET_COMPANY = "ORG335a"
 QMAKE_TARGET_PRODUCT = OrcaLauncher
-QMAKE_TARGET_COPYRIGHT = Dmitry Dulov
 
 TARGET = OrcaLauncher
 TEMPLATE = app
@@ -27,4 +26,6 @@ HEADERS  += mainwindow.h \
 FORMS    += mainwindow.ui \
     infodialog.ui
 
-RESOURCES +=
+RESOURCES += \
+    icons.qrc
+

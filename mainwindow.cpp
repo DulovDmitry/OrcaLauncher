@@ -16,6 +16,7 @@
 #include <QDateTime>
 #include <QTextEdit>
 #include <QThread>
+#include <QCloseEvent>
 
 QStringList fileList;
 QStringList fileNames;
@@ -26,14 +27,15 @@ QStringList fileThread;
 QString lastDir;
 QString orcaDir;
 QString sublDir;
+QString templatesFileDir;
 QString filter = "Orca input files (*.inp) ;; All files (*.*)";
 
-QString aboutProgramText = "OrcaLauncher v1.1.2\n\n"
+QString aboutProgramText = "OrcaLauncher v1.1.3\n\n"
                            "This is an open source project designed to simplify commutication with ORCA quantum chemistry package\n\n"
                            "Author: Dmitry Dulov, dulov.dmitry@gmail.com";
 
 int fileCounter = 0;
-int maxThreads = 16;
+int maxThreads = 32;
 
 qint64 pid;
 
@@ -45,6 +47,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     settings = new QSettings("ORG335a", "OrcaLauncher", this);
     loadSettings();
+
+    templatesForInputFile = new QMap<QString, QString>;
+    parseFileWithTemplates();
 
     launcher = new OrcaLauncher();                                                                  // создаю объект класса OrcaLauncher
     connect(this, SIGNAL(orcaLauncherSignal()),                                                     // связываю сигнал класса MainWindow со слотом класса OrcaLauncher, который запускает orca.exe
@@ -81,13 +86,33 @@ MainWindow::MainWindow(QWidget *parent) :
     writingtofilethread->start();
 
     setWindowTitle("OrcaLauncher");
-    QIcon *programIcon = new QIcon("C:/Users/Dima/Documents/OrcaLauncher/programIcon.png");
+    QIcon *programIcon = new QIcon(":/new/prefix1/programIcon");
     setWindowIcon(*programIcon);
 
     ui->tableWidget->setColumnWidth(0, 229);
     ui->tableWidget->setColumnWidth(1, 100);
 
-    ui->plainTextEdit->setPlainText("\nPlease select an input file in the left window (Input files queue) to start editing");
+    ui->plainTextEdit->setPlainText("\nSelect an input file in the left window (Input files queue) to start editing");
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    event->ignore();
+
+    if (ui->pushButton_9->isEnabled())
+    {
+        event->accept();
+    }
+    else
+    {
+        if (QMessageBox::Yes == QMessageBox::question(this,
+                                                      "Quit",
+                                                      "All processes will be terminated and the queue will be cleared. Are you sure you want to quit?",
+                                                      QMessageBox::Yes | QMessageBox::No))
+        {
+            event->accept();
+        }
+    }
 }
 
 MainWindow::~MainWindow()
@@ -101,6 +126,7 @@ void MainWindow::saveSettings()
     settings->setValue("ORCA_PATH", orcaDir);
     settings->setValue("SUBL_PATH", sublDir);
     settings->setValue("LAST_DIR", lastDir);
+    settings->setValue("TEMPLATES_DIR", templatesFileDir);
 }
 
 void MainWindow::loadSettings()
@@ -108,6 +134,7 @@ void MainWindow::loadSettings()
     orcaDir = settings->value("ORCA_PATH", "C:\\").toString();
     sublDir = settings->value("SUBL_PATH", "C:\\").toString();
     lastDir = settings->value("LAST_DIR", "C:\\").toString();
+    templatesFileDir = settings->value("TEMPLATES_DIR", "C:\\").toString();
 }
 
 OrcaLauncher::OrcaLauncher(QObject *parent)
@@ -443,6 +470,9 @@ void MainWindow::on_actionSet_path_to_Sublime_Text_triggered()
     QString sublimeTextDir;
     sublimeTextDir = QFileDialog::getOpenFileName(this, "Set path to Sublime Text 3", sublDir, "Executable files *.exe");
 
+    if (sublimeTextDir.isEmpty())
+        return;
+
     if (sublimeTextDir.contains("sublime_text.exe"))
     {
         QFileInfo sublDirInfo(sublimeTextDir);
@@ -498,4 +528,83 @@ void MainWindow::killCurrentTask()
     taskKillerProcess->setProgram("taskkill");
 
     taskKillerProcess->start();
+}
+
+void MainWindow::on_comboBox_activated(const QString &arg1)
+{
+    ui->plainTextEdit->setPlainText(templatesForInputFile->value(arg1));
+}
+
+void MainWindow::comboBoxFilling()
+{
+    ui->comboBox->clear();
+    ui->comboBox->addItem("Select the template");
+
+    QMap<QString, QString>::iterator i = templatesForInputFile->end();
+    i--;
+    for (; i != templatesForInputFile->begin().operator --(); i--)
+    {
+        ui->comboBox->addItem(i.key());
+    }
+}
+
+void MainWindow::on_actionSet_path_to_templates_dat_triggered()
+{
+    templatesFileDir = QFileDialog::getOpenFileName(this, "Set path to the file with templates", templatesFileDir, "Data files *.dat");
+
+    if (templatesFileDir.isEmpty())
+    {
+        templatesFileDir = "C:\\";
+        return;
+    }
+
+    if (templatesFileDir.contains("templates.dat"))
+        parseFileWithTemplates();
+    else
+        QMessageBox::warning(this, "", "This is not the templates.dat");
+}
+
+void MainWindow::parseFileWithTemplates()
+{
+    QFile templatesFile(templatesFileDir);
+    templatesFile.open(QFile::ReadOnly | QFile::Text);
+    QTextStream fin(&templatesFile);
+    QString templatesText = fin.readAll();
+    templatesFile.close();
+
+    int i = 0;
+
+    while (i < templatesText.length())
+    {
+        if (templatesText.at(i) == '"' && templatesText.at(i + 1) != '@')
+        {
+            i++;
+
+            QString key;
+            QString value;
+
+            while (templatesText.at(i) != '/' && templatesText.at(i + 1) != '"')
+            {
+                key.append(templatesText.at(i));
+                i++;
+            }
+
+            i += 4;
+
+            while (templatesText.at(i) != '/' && templatesText.at(i + 1) != '@')
+            {
+                value.append(templatesText.at(i));
+                i++;
+            }
+
+            templatesForInputFile->insert(key, value);
+
+            key.clear();
+            value.clear();
+        }
+
+        i++;
+    }
+
+    comboBoxFilling();
 }

@@ -41,6 +41,9 @@ signals:
 
     void killSelectedProcess();
 
+protected slots:
+    void closeEvent(QCloseEvent *event);
+
 private:
     Ui::InfoDialog *ui;
 };

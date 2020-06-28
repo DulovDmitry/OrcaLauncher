@@ -508,7 +508,7 @@
       <x>460</x>
       <y>30</y>
       <width>321</width>
-      <height>301</height>
+      <height>276</height>
      </rect>
     </property>
     <property name="font">
@@ -669,6 +669,23 @@
       <string>Save as new</string>
      </property>
     </widget>
+    <widget class="QComboBox" name="comboBox">
+     <property name="geometry">
+      <rect>
+       <x>12</x>
+       <y>300</y>
+       <width>321</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>8</pointsize>
+       <weight>50</weight>
+       <bold>false</bold>
+      </font>
+     </property>
+    </widget>
    </widget>
    <zorder>groupBox</zorder>
    <zorder>groupBox_2</zorder>
@@ -695,6 +712,7 @@
     </property>
     <addaction name="actionSet_Orca_directory"/>
     <addaction name="actionSet_path_to_Sublime_Text"/>
+    <addaction name="actionSet_path_to_templates_dat"/>
    </widget>
    <widget class="QMenu" name="menuInfo">
     <property name="title">
@@ -719,6 +737,11 @@
   <action name="actionSet_path_to_Sublime_Text">
    <property name="text">
     <string>Set path to Sublime Text 3</string>
+   </property>
+  </action>
+  <action name="actionSet_path_to_templates_dat">
+   <property name="text">
+    <string>Set path to templates.dat</string>
    </property>
   </action>
  </widget>
