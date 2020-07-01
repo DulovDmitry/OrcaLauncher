@@ -17,7 +17,7 @@ public:
     ~InfoDialog();
 
 public slots:
-    void initializeTable(QStringList taskNames, QStringList taskPaths, QStringList taskThreads);
+    void initializeTable(QStringList taskNames, QStringList subtaskNumber, QStringList taskThreads);
 
     void renewTable();
 

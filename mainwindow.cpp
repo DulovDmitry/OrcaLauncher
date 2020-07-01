@@ -23,6 +23,7 @@ QStringList fileNames;
 QStringList filePaths;
 QStringList fileBodies;
 QStringList fileThread;
+QStringList fileSubtask;
 
 QString lastDir;
 QString orcaDir;
@@ -30,7 +31,7 @@ QString sublDir;
 QString templatesFileDir;
 QString filter = "Orca input files (*.inp) ;; All files (*.*)";
 
-QString aboutProgramText = "OrcaLauncher v1.1.3\n\n"
+QString aboutProgramText = "OrcaLauncher v1.1.4\n\n"
                            "This is an open source project designed to simplify commutication with ORCA quantum chemistry package\n\n"
                            "Author: Dmitry Dulov, dulov.dmitry@gmail.com";
 
@@ -55,7 +56,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, SIGNAL(orcaLauncherSignal()),                                                     // связываю сигнал класса MainWindow со слотом класса OrcaLauncher, который запускает orca.exe
             launcher, SLOT(launchProgram()));                                                       //
     connect(launcher, SIGNAL(programIsFinished()),
-            this, SLOT(makeRunButtonAvaliable()));
+            this, SLOT(makeAllButtonAvaliable()));
     connect(launcher, SIGNAL(programIsFinished()),
             this, SLOT(showNormal()));
 
@@ -171,7 +172,7 @@ void OrcaLauncher::launchProgram()  // метод, запускающий orca.e
         process->setProcessChannelMode(QProcess::MergedChannels);
         process->start();                                                                           // запускаю orca.exe
         pid = process->processId();
-        while(process->waitForReadyRead())                                                          // печатаю в .out файл выдачу orca.exe
+        while(process->waitForReadyRead(2000000000))                                                          // печатаю в .out файл выдачу orca.exe
             fout << process->readAll();
 
         outFile.flush();
@@ -209,6 +210,8 @@ void MainWindow::on_pushButton_clicked()     // клик по кнопке Load 
         fileBodies.append(text);                                                                            //
         file.close();
 
+        fileSubtask.append(QString::number(subtaskCounter(fileBodies.at(fileCounter))));
+
         int i = 1;
         while(!(text.contains(QString("PAL%1").arg(i)) || (text.contains(QString("nprocs %1\n").arg(i)) || text.contains(QString("nprocs %1 ").arg(i)))))
         {
@@ -243,6 +246,7 @@ void MainWindow::on_pushButton_2_clicked()                                      
     filePaths.removeAt(ui->tableWidget->currentRow());
     fileBodies.removeAt(ui->tableWidget->currentRow());
     fileThread.removeAt(ui->tableWidget->currentRow());
+    fileSubtask.removeAt(ui->tableWidget->currentRow());
     ui->tableWidget->removeRow(ui->tableWidget->currentRow());
     ui->plainTextEdit->clear();
     fileCounter--;
@@ -255,6 +259,7 @@ void MainWindow::on_pushButton_3_clicked()                                      
     filePaths.clear();
     fileBodies.clear();
     fileThread.clear();
+    fileSubtask.clear();
     ui->plainTextEdit->clear();
 
     for (int i = fileCounter; i >=0; i--)
@@ -287,6 +292,8 @@ void MainWindow::on_pushButton_4_clicked()                                      
         fileNames.move(current_row, current_row-1);
         fileThread.move(current_row, current_row-1);
         fileBodies.move(current_row, current_row-1);
+        filePaths.move(current_row, current_row-1);
+        fileSubtask.move(current_row, current_row-1);
 
         for (int i = 0; i < fileCounter; i++)
         {
@@ -314,6 +321,8 @@ void MainWindow::on_pushButton_5_clicked()                                      
         fileNames.move(current_row, current_row+1);
         fileThread.move(current_row, current_row+1);
         fileBodies.move(current_row, current_row+1);
+        filePaths.move(current_row, current_row+1);
+        fileSubtask.move(current_row, current_row+1);
 
         for (int i = 0; i < fileCounter; i++)
         {
@@ -345,9 +354,9 @@ void MainWindow::on_pushButton_9_clicked()                                      
     {
         if (orcaDir.contains("orca.exe"))                                           // проверка на наличие пути именно к orca.exe
         {
-            ui->pushButton_9->setEnabled(false);
+            makeAllButtonUnavaliable();
             infodialog->show();                                                     // отображение информационного окна
-            emit initializeTableInInfoWindow(fileNames, filePaths, fileThread);                // создание в нем таблицы
+            emit initializeTableInInfoWindow(fileNames, fileSubtask, fileThread);                // создание в нем таблицы
             emit orcaLauncherSignal();                                              // запуск метода, который запускает orca.exe
             this->showMinimized();                                                  // свертывание главного окна
             ui->plainTextEdit->clear();
@@ -382,6 +391,8 @@ void MainWindow::on_pushButton_6_clicked()                                      
                 out << actualText;
                 file.flush();
                 file.close();
+
+                fileSubtask.replace(current_row, QString::number(subtaskCounter(actualText)));
 
                 int i = 1;
                 while(!(actualText.contains(QString("PAL%1").arg(i)) || (actualText.contains(QString("nprocs %1\n").arg(i)) || actualText.contains(QString("nprocs %1 ").arg(i)))))
@@ -433,6 +444,7 @@ void MainWindow::on_pushButton_8_clicked()                                      
     QFileInfo fileInfo(fileList.at(fileCounter));
     fileNames.append(fileInfo.baseName());
     filePaths.append(fileInfo.absolutePath());
+    fileSubtask.append(QString::number(subtaskCounter(actualText)));
 
     int i = 1;
     while(!(actualText.contains(QString("PAL%1").arg(i)) || (actualText.contains(QString("nprocs %1\n").arg(i)) || actualText.contains(QString("nprocs %1 ").arg(i)))))
@@ -500,9 +512,28 @@ void MainWindow::launchSubl(int selectedRow)
     }
 }
 
-void MainWindow::makeRunButtonAvaliable()
+void MainWindow::makeAllButtonAvaliable()
 {
+    ui->pushButton->setEnabled(true);
+    ui->pushButton_2->setEnabled(true);
+    ui->pushButton_3->setEnabled(true);
+    ui->pushButton_4->setEnabled(true);
+    ui->pushButton_5->setEnabled(true);
+    ui->pushButton_6->setEnabled(true);
+    ui->pushButton_8->setEnabled(true);
     ui->pushButton_9->setEnabled(true);
+}
+
+void MainWindow::makeAllButtonUnavaliable()
+{
+    ui->pushButton->setEnabled(false);
+    ui->pushButton_2->setEnabled(false);
+    ui->pushButton_3->setEnabled(false);
+    ui->pushButton_4->setEnabled(false);
+    ui->pushButton_5->setEnabled(false);
+    ui->pushButton_6->setEnabled(false);
+    ui->pushButton_8->setEnabled(false);
+    ui->pushButton_9->setEnabled(false);
 }
 
 void MainWindow::deleteFile(int fileNumber)
@@ -512,6 +543,7 @@ void MainWindow::deleteFile(int fileNumber)
     filePaths.removeAt(fileNumber);
     fileBodies.removeAt(fileNumber);
     fileThread.removeAt(fileNumber);
+    fileSubtask.removeAt(fileNumber);
     ui->tableWidget->removeRow(fileNumber);
     fileCounter--;
 }
@@ -562,6 +594,19 @@ void MainWindow::on_actionSet_path_to_templates_dat_triggered()
         parseFileWithTemplates();
     else
         QMessageBox::warning(this, "", "This is not the templates.dat");
+}
+
+int MainWindow::subtaskCounter(QString fileText)
+{
+    int n = 1;
+
+    for (int i = 0; i < fileText.length() - 2; i++)
+    {
+        if (fileText.at(i) == '$' && fileText.at(i + 1) == 'n' && fileText.at(i + 2) == 'e')
+            n++;
+    }
+
+    return n;
 }
 
 void MainWindow::parseFileWithTemplates()

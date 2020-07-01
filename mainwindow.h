@@ -83,10 +83,14 @@ private slots:
 
     void on_actionSet_path_to_templates_dat_triggered();
 
+    int subtaskCounter(QString fileText);
+
 public slots:
     void launchSubl(int selectedRow);
 
-    void makeRunButtonAvaliable();
+    void makeAllButtonAvaliable();
+
+    void makeAllButtonUnavaliable();
 
     void deleteFile(int fileNumber);
 
@@ -95,7 +99,7 @@ public slots:
 signals:
     void orcaLauncherSignal();
 
-    void initializeTableInInfoWindow(QStringList taskNames, QStringList taskPaths, QStringList taskThreads);
+    void initializeTableInInfoWindow(QStringList taskNames, QStringList subtaskNumber, QStringList taskThreads);
 
 protected slots:
     void closeEvent(QCloseEvent *event);

@@ -6,7 +6,9 @@
 #include <QCloseEvent>
 
 QStringList taskStatus;
+QStringList numberOfSubtask;
 int currentTask = 0;
+int currentSubtask = 0;
 
 InfoDialog::InfoDialog(QWidget *parent) :
     QDialog(parent),
@@ -46,7 +48,7 @@ InfoDialog::~InfoDialog()
     delete ui;
 }
 
-void InfoDialog::initializeTable(QStringList taskNames, QStringList taskPaths, QStringList taskThreads)        // метод, который создает таблицу в информационном окне
+void InfoDialog::initializeTable(QStringList taskNames, QStringList subtaskNumber, QStringList taskThreads)        // метод, который создает таблицу в информационном окне
 {
     QRect rec = QApplication::desktop()->screenGeometry();
 
@@ -80,7 +82,7 @@ void InfoDialog::initializeTable(QStringList taskNames, QStringList taskPaths, Q
 }
 
 void InfoDialog::renewTable()                                                           // метод, который обновляет таблицу при завершении очередной задачи
-{
+{    
     QTableWidgetItem *statustableitem = new QTableWidgetItem("In progress");                    // выполняемой задаче изменяем статус на "In progress"
     statustableitem->setBackgroundColor(QColor(255, 255, 0, 127));
     ui->tableWidget->setItem(currentTask, 2, statustableitem);
@@ -141,12 +143,12 @@ void InfoDialog::on_tableWidget_cellClicked(int row, int column)
     }
 }
 
-void InfoDialog::on_pushButton_2_clicked()
+void InfoDialog::on_pushButton_2_clicked()  //Delete task
 {
     QMessageBox::StandardButton confirmation;
     confirmation = QMessageBox::question(this,
                                          QString("Delete %1.inp").arg(ui->tableWidget->itemAt(0, ui->tableWidget->currentRow())->text()),
-                                         QString("Are you sure you want to delete %1.inp from queue?").arg(ui->tableWidget->itemAt(0, ui->tableWidget->currentRow())->text()),
+                                         QString("Are you sure you want to delete %1.inp from queue?").arg(ui->tableWidget->item(ui->tableWidget->currentRow(), 0)->text()),
                                          QMessageBox::Yes|QMessageBox::No);
     if (confirmation == QMessageBox::Yes)
     {
@@ -164,12 +166,12 @@ void InfoDialog::on_pushButton_2_clicked()
     }
 }
 
-void InfoDialog::on_pushButton_clicked()
+void InfoDialog::on_pushButton_clicked()    //Kill process
 {
     QMessageBox::StandardButton confirmation;
     confirmation = QMessageBox::question(this,
                                          QString("Kill %1.inp").arg(ui->tableWidget->itemAt(0, ui->tableWidget->currentRow())->text()),
-                                         QString("Are you sure you want to terminate %1.inp task?").arg(ui->tableWidget->itemAt(0, ui->tableWidget->currentRow())->text()),
+                                         QString("Are you sure you want to terminate %1.inp task?").arg(ui->tableWidget->item(ui->tableWidget->currentRow(), 0)->text()),
                                          QMessageBox::Yes|QMessageBox::No);
     if (confirmation == QMessageBox::Yes)
     {
