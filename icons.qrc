@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/new/prefix1">
-        <file alias="programIcon">programIcon.png</file>
+        <file alias="programIcon">programIcon.ico</file>
+        <file alias="orcaIcon">orcaIcon.ico</file>
+        <file alias="sublimeIcon">sublimeTextIcon.ico</file>
     </qresource>
 </RCC>

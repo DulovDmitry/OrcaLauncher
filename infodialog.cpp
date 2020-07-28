@@ -4,6 +4,9 @@
 #include <QDesktopWidget>
 #include <QMessageBox>
 #include <QCloseEvent>
+#include <QMenu>
+#include <QFileInfo>
+#include <QProcess>
 
 QStringList taskStatus;
 QStringList numberOfSubtask;
@@ -21,6 +24,15 @@ InfoDialog::InfoDialog(QWidget *parent) :
     QIcon *programIcon = new QIcon(":/new/prefix1/programIcon");
     setWindowIcon(*programIcon);
 
+    ui->tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->tableWidget, SIGNAL(customContextMenuRequested(QPoint)),
+            this, SLOT(slotCustomMenuRequested(QPoint)));
+    ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    ui->tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    ui->tableWidget->setStyleSheet("QTableView::item:selected { color: black; background: #e0f6ff; outline: none; border: none;}"
+                                   "QTableView:focus {outline: none;}");
+    ui->tableWidget->setFocusPolicy(Qt::NoFocus);
+
 }
 
 void InfoDialog::closeEvent(QCloseEvent *event)
@@ -30,16 +42,11 @@ void InfoDialog::closeEvent(QCloseEvent *event)
     if (currentTask == 0)
     {
         event->accept();
+        emit infoDialogIsClosing();
     }
     else
     {
-        if (QMessageBox::Yes == QMessageBox::question(this,
-                                                      "Quit",
-                                                      "All processes will be terminated and the queue will be cleared. Are you sure you want to quit?",
-                                                      QMessageBox::Yes | QMessageBox::No))
-        {
-            event->accept();
-        }
+        QMessageBox::warning(this, "Warning", QString("%1.inp is in progress!").arg(ui->tableWidget->item(currentTask - 1, 0)->text()));
     }
 }
 
@@ -48,14 +55,14 @@ InfoDialog::~InfoDialog()
     delete ui;
 }
 
-void InfoDialog::initializeTable(QStringList taskNames, QStringList subtaskNumber, QStringList taskThreads)        // метод, который создает таблицу в информационном окне
+void InfoDialog::initializeTable(QStringList taskNames, QStringList taskPaths, QStringList taskThreads)        // метод, который создает таблицу в информационном окне
 {
     QRect rec = QApplication::desktop()->screenGeometry();
 
     setFixedHeight(taskNames.size()*25 + 80);
     this->move(rec.width() - 366, rec.height() - taskNames.size()*25 - 160);                        // помещаем окно в правый нижний угол
 
-    ui->tableWidget->setFixedHeight(taskNames.size()*25 + 30);
+    ui->tableWidget->setFixedHeight(taskNames.size()*25 + 25);
     ui->tableWidget->setRowCount(taskNames.size());
     ui->tableWidget->setColumnWidth(0, 209);
     ui->tableWidget->setColumnWidth(1, 50);
@@ -71,6 +78,9 @@ void InfoDialog::initializeTable(QStringList taskNames, QStringList subtaskNumbe
         QTableWidgetItem *threadstableitem = new QTableWidgetItem(taskThreads.at(i));
         QTableWidgetItem *statustableitem = new QTableWidgetItem("In queue");
 
+        threadstableitem->setTextAlignment(Qt::AlignCenter);
+        statustableitem->setTextAlignment(Qt::AlignCenter);
+
         ui->tableWidget->setItem(i, 0, nametableitem);
         ui->tableWidget->setItem(i, 1, threadstableitem);
         ui->tableWidget->setItem(i, 2, statustableitem);
@@ -79,18 +89,22 @@ void InfoDialog::initializeTable(QStringList taskNames, QStringList subtaskNumbe
     }
 
     ui->tableWidget->setColumnWidth(0, 194);
+
+    pathsOfFiles = taskPaths;
 }
 
 void InfoDialog::renewTable()                                                           // метод, который обновляет таблицу при завершении очередной задачи
 {    
     QTableWidgetItem *statustableitem = new QTableWidgetItem("In progress");                    // выполняемой задаче изменяем статус на "In progress"
     statustableitem->setBackgroundColor(QColor(255, 255, 0, 127));
+    statustableitem->setTextAlignment(Qt::AlignCenter);
     ui->tableWidget->setItem(currentTask, 2, statustableitem);
 
     if(currentTask)
     {
         QTableWidgetItem *statustableitem2 = new QTableWidgetItem("Completed");                 // выполненной задаче изменяем статус на "Completed"
         statustableitem2->setBackgroundColor(QColor(0, 255, 0, 127));
+        statustableitem2->setTextAlignment(Qt::AlignCenter);
         ui->tableWidget->setItem(currentTask-1, 2, statustableitem2);
     }
 
@@ -103,12 +117,14 @@ void InfoDialog::renewTableWithError()
 {
     QTableWidgetItem *statustableitem = new QTableWidgetItem("In progress");
     statustableitem->setBackgroundColor(QColor(255, 255, 0, 127));
+    statustableitem->setTextAlignment(Qt::AlignCenter);
     ui->tableWidget->setItem(currentTask, 2, statustableitem);
 
     if(currentTask)
     {
         QTableWidgetItem *statustableitem2 = new QTableWidgetItem("Aborted");
         statustableitem2->setBackgroundColor(QColor(255, 0, 0, 127));
+        statustableitem2->setTextAlignment(Qt::AlignCenter);
         ui->tableWidget->setItem(currentTask-1, 2, statustableitem2);
     }
 
@@ -122,9 +138,41 @@ void InfoDialog::resetToZero()
     currentTask = 0;
 }
 
+void InfoDialog::launchSublimeFromContextMenu(bool b)
+{
+    emit sublLaunchSignal(ui->tableWidget->currentRow());
+}
+
+void InfoDialog::launchOrca2aim(bool b)
+{
+    int current_row = ui->tableWidget->currentRow();
+    settings = new QSettings("ORG335a", "OrcaLauncher", this);
+    QFileInfo fileInfo(settings->value("ORCA_PATH", "C:\\").toString());
+    QString orca2aimDir = fileInfo.absolutePath() + "\\orca_2aim.exe";
+
+    QStringList arguments;
+    arguments.append(ui->tableWidget->item(current_row, 0)->text());
+
+    QProcess *process = new QProcess(this);
+    process->setWorkingDirectory(pathsOfFiles.at(current_row));
+    process->setArguments(arguments);
+    process->setProgram(orca2aimDir);
+
+    process->start();
+    process->waitForFinished(30000);
+
+    if(process->exitCode() == 0)
+        QMessageBox::information(this, "Done!", QString("The %1.wfn has been created").arg(ui->tableWidget->item(current_row, 0)->text()));
+    else
+        QMessageBox::critical(this, "Error", "Something went wrong :(");
+
+
+}
+
 void InfoDialog::on_tableWidget_cellDoubleClicked(int row, int column)
 {
-    sublLaunchSignal(row);
+    if (!ui->pushButton_2->isEnabled())
+        sublLaunchSignal(row);
 }
 
 void InfoDialog::on_tableWidget_cellClicked(int row, int column)
@@ -154,8 +202,11 @@ void InfoDialog::on_pushButton_2_clicked()  //Delete task
     {
         if (ui->pushButton_2->isEnabled())
         {
-            ui->tableWidget->removeRow(ui->tableWidget->currentRow());
-            emit deleteSelectedTask(ui->tableWidget->currentRow() + 1);
+            int row = ui->tableWidget->currentRow();
+
+            ui->tableWidget->removeRow(row);
+            pathsOfFiles.removeAt(row);
+            emit deleteSelectedTask(row + 1);
         }
         else
             return;
@@ -184,4 +235,34 @@ void InfoDialog::on_pushButton_clicked()    //Kill process
     {
         return;
     }
+}
+
+void InfoDialog::slotCustomMenuRequested(QPoint pos)
+{
+    QMenu *menu = new QMenu(this);
+    QIcon *orcaIcon = new QIcon(":/new/prefix1/orcaIcon");
+    QIcon *sublimeIcon = new QIcon(":/new/prefix1/sublimeIcon");
+
+    QAction *makeWfnFile = new QAction(*orcaIcon, "Make " + ui->tableWidget->item(ui->tableWidget->currentRow(), 0)->text() + ".wfn (orca_2aim)", this);
+    QAction *launchSublime = new QAction(*sublimeIcon, "Open in Sublime Text 3", this);
+
+    connect(launchSublime, SIGNAL(triggered(bool)),
+            this, SLOT(launchSublimeFromContextMenu(bool)));
+    connect(makeWfnFile, SIGNAL(triggered(bool)),
+            this, SLOT(launchOrca2aim(bool)));
+
+    on_tableWidget_cellClicked(ui->tableWidget->currentRow(), ui->tableWidget->currentColumn());
+
+    if (ui->pushButton->isEnabled())
+        makeWfnFile->setDisabled(true);
+
+    if (ui->pushButton_2->isEnabled())
+    {
+        launchSublime->setDisabled(true);
+        makeWfnFile->setDisabled(true);
+    }
+
+    menu->addAction(launchSublime);
+    menu->addAction(makeWfnFile);
+    menu->popup(ui->tableWidget->viewport()->mapToGlobal(pos));
 }

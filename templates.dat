@@ -1,20 +1,16 @@
-"Single point/"
-@!PBE def2-SVP ENERGY TightSCF
-
-*xyzfile 0 1 your_file.xyz
-
-/@
-
-"Optimization/"
-@!PBE def2-SVP OPT TightOPT TightSCF
-
-*xyzfile 0 1 your_file.xyz
-
-/@
-
-"Hessian/"
-@!PBE def2-SVP TightSCF Freq
-
-*xyzfile 0 1 your_file.xyz
-
-/@
+{
+    "templates": [
+        {
+            "body": "!PBE def2-SVP def2/J ENERGY TightSCF\r\n\r\n%pal\r\n    nprocs N\r\nend\r\n\r\n*xyzfile 0 1 your_file.xyz\r\n",
+            "title": "Single point"
+        },
+        {
+            "body": "!PBE def2-SVP def2/J OPT TightOPT TightSCF\r\n\r\n%pal\r\n    nprocs N\r\nend\r\n\r\n*xyzfile 0 1 your_file.xyz\r\n",
+            "title": "Optimization"
+        },
+        {
+            "body": "!PBE def2-SVP def2/J VeryTightSCF Freq\r\n\r\n%pal\r\n    nprocs N\r\nend\r\n\r\n*xyzfile 0 1 your_file.xyz\r\n",
+            "title": "Hessian"
+        }
+    ]
+}

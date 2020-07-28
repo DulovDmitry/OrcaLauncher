@@ -2,6 +2,7 @@
 #define INFODIALOG_H
 
 #include <QDialog>
+#include <QSettings>
 
 
 namespace Ui {
@@ -17,13 +18,17 @@ public:
     ~InfoDialog();
 
 public slots:
-    void initializeTable(QStringList taskNames, QStringList subtaskNumber, QStringList taskThreads);
+    void initializeTable(QStringList taskNames, QStringList taskPaths, QStringList taskThreads);
 
     void renewTable();
 
     void renewTableWithError();
 
     void resetToZero();
+
+    void launchSublimeFromContextMenu(bool b);
+
+    void launchOrca2aim(bool b);
 
 private slots:
     void on_tableWidget_cellDoubleClicked(int row, int column);
@@ -34,6 +39,8 @@ private slots:
 
     void on_pushButton_clicked();
 
+    void slotCustomMenuRequested(QPoint pos);
+
 signals:
     void sublLaunchSignal(int selectedRow);
 
@@ -41,11 +48,15 @@ signals:
 
     void killSelectedProcess();
 
+    void infoDialogIsClosing();
+
 protected slots:
     void closeEvent(QCloseEvent *event);
 
 private:
     Ui::InfoDialog *ui;
+    QSettings *settings;
+    QStringList pathsOfFiles;
 };
 
 #endif // INFODIALOG_H

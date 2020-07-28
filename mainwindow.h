@@ -6,6 +6,7 @@
 #include <QProcess>
 #include <QMap>
 #include "infodialog.h"
+#include "templatesmanager.h"
 
 namespace Ui {
 class MainWindow;
@@ -46,7 +47,6 @@ public:
 
     void loadSettings();
 
-    QMap<QString, QString> *templatesForInputFile;
 
 private slots:
     void on_pushButton_clicked();
@@ -85,6 +85,8 @@ private slots:
 
     int subtaskCounter(QString fileText);
 
+    void on_toolButton_clicked();
+
 public slots:
     void launchSubl(int selectedRow);
 
@@ -108,8 +110,11 @@ private:
     Ui::MainWindow *ui;
     QSettings *settings;
     InfoDialog *infodialog;
+    TemplatesManager *templatesmanager;
     OrcaLauncher *launcher;
     QThread *writingtofilethread;
+    QStringList templateKey;
+    QStringList templateValue;
 };
 
 #endif // MAINWINDOW_H

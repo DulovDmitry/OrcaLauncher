@@ -17,6 +17,10 @@
 #include <QTextEdit>
 #include <QThread>
 #include <QCloseEvent>
+#include <QJsonDocument>
+#include <QJsonValue>
+#include <QJsonArray>
+#include <QJsonObject>
 
 QStringList fileList;
 QStringList fileNames;
@@ -31,7 +35,7 @@ QString sublDir;
 QString templatesFileDir;
 QString filter = "Orca input files (*.inp) ;; All files (*.*)";
 
-QString aboutProgramText = "OrcaLauncher v1.1.4\n\n"
+QString aboutProgramText = "OrcaLauncher v1.2.0\n\n"
                            "This is an open source project designed to simplify commutication with ORCA quantum chemistry package\n\n"
                            "Author: Dmitry Dulov, dulov.dmitry@gmail.com";
 
@@ -49,7 +53,6 @@ MainWindow::MainWindow(QWidget *parent) :
     settings = new QSettings("ORG335a", "OrcaLauncher", this);
     loadSettings();
 
-    templatesForInputFile = new QMap<QString, QString>;
     parseFileWithTemplates();
 
     launcher = new OrcaLauncher();                                                                  // создаю объект класса OrcaLauncher
@@ -57,8 +60,8 @@ MainWindow::MainWindow(QWidget *parent) :
             launcher, SLOT(launchProgram()));                                                       //
     connect(launcher, SIGNAL(programIsFinished()),
             this, SLOT(makeAllButtonAvaliable()));
-    connect(launcher, SIGNAL(programIsFinished()),
-            this, SLOT(showNormal()));
+    //connect(launcher, SIGNAL(programIsFinished()),
+    //        this, SLOT(showNormal()));
 
     infodialog = new InfoDialog();                                                                  // создаю объект класса InfoDialog
     connect(this, SIGNAL(initializeTableInInfoWindow(QStringList,QStringList,QStringList)),                     // связываю сигнал класса MainWindow со слотом класса InfoDialog, который создает таблицу в окне
@@ -77,11 +80,12 @@ MainWindow::MainWindow(QWidget *parent) :
             infodialog, SLOT(resetToZero()));
     connect(infodialog, SIGNAL(killSelectedProcess()),
             this, SLOT(killCurrentTask()));
+    connect(infodialog, SIGNAL(infoDialogIsClosing()),
+            this, SLOT(showNormal()));
 
     writingtofilethread = new QThread(this);                                                        // создаю отдельный поток для записи .out файла из orca.exe
     connect(this, SIGNAL(destroyed()),
             writingtofilethread, SLOT(quit()));
-
 
     launcher->moveToThread(writingtofilethread);                                                    // перемещаю объект класса OrcaLauncher в отдельный поток
     writingtofilethread->start();
@@ -92,6 +96,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->tableWidget->setColumnWidth(0, 229);
     ui->tableWidget->setColumnWidth(1, 100);
+    ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    ui->tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->tableWidget->setStyleSheet("QTableView::item:selected { color: black; background: #e0f6ff; outline: none; }"
+                                   "QTableView::item:focus { outline: none; border: none; }"
+                                   "QTableView:focus {outline: none; }");
 
     ui->plainTextEdit->setPlainText("\nSelect an input file in the left window (Input files queue) to start editing");
 }
@@ -103,16 +113,12 @@ void MainWindow::closeEvent(QCloseEvent *event)
     if (ui->pushButton_9->isEnabled())
     {
         event->accept();
+        if (infodialog->isEnabled())
+            infodialog->~InfoDialog();
     }
     else
     {
-        if (QMessageBox::Yes == QMessageBox::question(this,
-                                                      "Quit",
-                                                      "All processes will be terminated and the queue will be cleared. Are you sure you want to quit?",
-                                                      QMessageBox::Yes | QMessageBox::No))
-        {
-            event->accept();
-        }
+        QMessageBox::warning(this, "Warning", "All tasks must be completed");
     }
 }
 
@@ -226,7 +232,7 @@ void MainWindow::on_pushButton_clicked()     // клик по кнопке Load 
 
         QTableWidgetItem *nametableitem = new QTableWidgetItem(fileNames.at(fileCounter));                  //
         QTableWidgetItem *threadstableitem = new QTableWidgetItem(fileThread.at(fileCounter));              //
-                                                                                                            // Заполняем таблицу именами файлов и количеством требуемых потоков
+        threadstableitem->setTextAlignment(Qt::AlignCenter);                                                // Заполняем таблицу именами файлов и количеством требуемых потоков
         ui->tableWidget->setItem(fileCounter, 0, nametableitem);                                            //
         ui->tableWidget->setItem(fileCounter, 1, threadstableitem);                                         //
 
@@ -262,7 +268,7 @@ void MainWindow::on_pushButton_3_clicked()                                      
     fileSubtask.clear();
     ui->plainTextEdit->clear();
 
-    for (int i = fileCounter; i >=0; i--)
+    for (int i = fileCounter; i >= 0; i--)
     {
         ui->tableWidget->removeRow(i);
     }
@@ -278,6 +284,11 @@ void MainWindow::on_tableWidget_cellDoubleClicked(int row, int column)          
 void MainWindow::on_tableWidget_cellClicked(int row, int column)                                    // клик по ячейке в таблице
 {
     ui->plainTextEdit->setPlainText(fileBodies.at(row));                                            // перемещаем текст выбранного файла в окно редактора
+    for (int i = 0; i < fileList.length(); i++)
+    {
+        ui->tableWidget->item(i, 0)->setFont(QFont("Segoe UI", 9, -1, false));
+    }
+    ui->tableWidget->item(row, 0)->setFont(QFont("Segoe UI", 9, 100, false));
 }
 
 void MainWindow::on_pushButton_4_clicked()                                                          // клик по кнопке Move UP
@@ -303,6 +314,12 @@ void MainWindow::on_pushButton_4_clicked()                                      
             ui->tableWidget->setItem(i, 0, nametableitem);
             ui->tableWidget->setItem(i, 1, threadstableitem);
         }
+
+        for (int i = 0; i < fileList.length(); i++)
+        {
+            ui->tableWidget->item(i, 0)->setFont(QFont("Segoe UI", 9, -1, false));
+        }
+        ui->tableWidget->item(current_row - 1, 0)->setFont(QFont("Segoe UI", 9, 100, false));
 
         ui->tableWidget->selectRow(current_row-1);
     }
@@ -333,13 +350,20 @@ void MainWindow::on_pushButton_5_clicked()                                      
             ui->tableWidget->setItem(i, 1, threadstableitem);
         }
 
-        ui->tableWidget->selectRow(current_row+1);
+        for (int i = 0; i < fileList.length(); i++)
+        {
+            ui->tableWidget->item(i, 0)->setFont(QFont("Segoe UI", 9, -1, false));
+        }
+        ui->tableWidget->item(current_row + 1, 0)->setFont(QFont("Segoe UI", 9, 100, false));
+
+        ui->tableWidget->selectRow(current_row + 1);
     }
 }
 
 void MainWindow::on_actionSet_Orca_directory_triggered()
 {
-    orcaDir = QFileDialog::getOpenFileName(this, "Set path to orca.exe", "D:\\", "Executable files *.exe");
+    orcaDir = QFileDialog::getOpenFileName(this, "Set path to orca.exe", orcaDir, "Executable files *.exe");
+    saveSettings();
 }
 
 void MainWindow::on_pushButton_9_clicked()                                                          // клик по книпке RUN
@@ -356,7 +380,7 @@ void MainWindow::on_pushButton_9_clicked()                                      
         {
             makeAllButtonUnavaliable();
             infodialog->show();                                                     // отображение информационного окна
-            emit initializeTableInInfoWindow(fileNames, fileSubtask, fileThread);                // создание в нем таблицы
+            emit initializeTableInInfoWindow(fileNames, filePaths, fileThread);     // создание в нем таблицы
             emit orcaLauncherSignal();                                              // запуск метода, который запускает orca.exe
             this->showMinimized();                                                  // свертывание главного окна
             ui->plainTextEdit->clear();
@@ -379,7 +403,7 @@ void MainWindow::on_pushButton_6_clicked()                                      
             QMessageBox::StandardButton confirmation;
             confirmation = QMessageBox::question(this,
                                                  QString("Save %1.inp").arg(fileNames.at(current_row)),
-                                                 QString("Are you sure you want to change %1.inp?").arg(fileNames.at(current_row)),
+                                                 QString("Are you sure you want to save changes in %1.inp?").arg(fileNames.at(current_row)),
                                                  QMessageBox::Yes|QMessageBox::No);
             if (confirmation == QMessageBox::Yes)
             {
@@ -426,7 +450,7 @@ void MainWindow::on_pushButton_8_clicked()                                      
 {                                                                                                   // последовательность действий, которая сохраняет содержимое окна редактора в новый файл и добавляет этот файл в очередь задач
     QString actualText = ui->plainTextEdit->toPlainText();
 
-    QString savingFileName = QFileDialog::getSaveFileName(this, "Save file as", lastDir, filter);
+    QString savingFileName = QFileDialog::getSaveFileName(this, "Save new input file", lastDir + "\\" + ui->tableWidget->item(ui->tableWidget->currentRow(), 0)->text(), filter);
 
     if(savingFileName.isEmpty() || savingFileName.isNull())
         return;
@@ -469,12 +493,17 @@ void MainWindow::on_pushButton_8_clicked()                                      
     ui->tableWidget->setRowHeight(fileCounter, 25);
     ui->tableWidget->selectRow(fileCounter);
 
+    ui->tableWidget->setColumnWidth(0, 214);                                                        // подстраиваем ширины колонок таблицы
+    ui->tableWidget->setColumnWidth(1, 100);                                                        //
+
+    lastDir = filePaths.last();
+
     fileCounter++;
 }
 
 void MainWindow::on_actionAbout_triggered()                                                         // клик по кнопке About
 {
-    QMessageBox::information(this, "About OrcaLauncher", aboutProgramText);
+    QMessageBox::about(this, "About OrcaLauncher", aboutProgramText);
 }
 
 void MainWindow::on_actionSet_path_to_Sublime_Text_triggered()
@@ -564,7 +593,13 @@ void MainWindow::killCurrentTask()
 
 void MainWindow::on_comboBox_activated(const QString &arg1)
 {
-    ui->plainTextEdit->setPlainText(templatesForInputFile->value(arg1));
+    if (ui->comboBox->currentIndex() == 0)
+    {
+        ui->plainTextEdit->clear();
+        return;
+    }
+    else
+        ui->plainTextEdit->setPlainText(templateValue.at(ui->comboBox->currentIndex() - 1));
 }
 
 void MainWindow::comboBoxFilling()
@@ -572,11 +607,9 @@ void MainWindow::comboBoxFilling()
     ui->comboBox->clear();
     ui->comboBox->addItem("Select the template");
 
-    QMap<QString, QString>::iterator i = templatesForInputFile->end();
-    i--;
-    for (; i != templatesForInputFile->begin().operator --(); i--)
+    for (int i = 0; i < templateKey.length(); i++)
     {
-        ui->comboBox->addItem(i.key());
+        ui->comboBox->addItem(templateKey.at(i));
     }
 }
 
@@ -611,45 +644,33 @@ int MainWindow::subtaskCounter(QString fileText)
 
 void MainWindow::parseFileWithTemplates()
 {
-    QFile templatesFile(templatesFileDir);
-    templatesFile.open(QFile::ReadOnly | QFile::Text);
-    QTextStream fin(&templatesFile);
-    QString templatesText = fin.readAll();
-    templatesFile.close();
+    QFile jsonFile(templatesFileDir);
+    if(!jsonFile.open(QIODevice::ReadOnly))
+        return;
 
-    int i = 0;
+    templateKey.clear();
+    templateValue.clear();
 
-    while (i < templatesText.length())
-    {
-        if (templatesText.at(i) == '"' && templatesText.at(i + 1) != '@')
-        {
-            i++;
+    QByteArray saveData = jsonFile.readAll();
+    QJsonDocument jsonDocument(QJsonDocument::fromJson(saveData));
+    QJsonObject jsonTemplatesObject = jsonDocument.object();
+    QJsonArray jsonTemplatesArray = jsonTemplatesObject.value("templates").toArray();
 
-            QString key;
-            QString value;
-
-            while (templatesText.at(i) != '/' && templatesText.at(i + 1) != '"')
-            {
-                key.append(templatesText.at(i));
-                i++;
-            }
-
-            i += 4;
-
-            while (templatesText.at(i) != '/' && templatesText.at(i + 1) != '@')
-            {
-                value.append(templatesText.at(i));
-                i++;
-            }
-
-            templatesForInputFile->insert(key, value);
-
-            key.clear();
-            value.clear();
-        }
-
-        i++;
+    foreach (QJsonValue jVal, jsonTemplatesArray) {
+        QJsonObject jTempl = jVal.toObject();
+        templateKey.append(jTempl.value("title").toString());
+        templateValue.append(jTempl.value("body").toString());
     }
 
     comboBoxFilling();
+}
+
+void MainWindow::on_toolButton_clicked()
+{
+    templatesmanager = new TemplatesManager(this);
+
+    connect(templatesmanager, SIGNAL(windowIsClosing()),
+            this, SLOT(parseFileWithTemplates()));
+
+    templatesmanager->show();
 }
