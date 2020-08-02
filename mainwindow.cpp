@@ -35,7 +35,7 @@ QString sublDir;
 QString templatesFileDir;
 QString filter = "Orca input files (*.inp) ;; All files (*.*)";
 
-QString aboutProgramText = "OrcaLauncher v1.2.0\n\n"
+QString aboutProgramText = "OrcaLauncher v1.2.1\n\n"
                            "This is an open source project designed to simplify commutication with ORCA quantum chemistry package\n\n"
                            "Author: Dmitry Dulov, dulov.dmitry@gmail.com";
 
@@ -450,7 +450,7 @@ void MainWindow::on_pushButton_8_clicked()                                      
 {                                                                                                   // последовательность действий, которая сохраняет содержимое окна редактора в новый файл и добавляет этот файл в очередь задач
     QString actualText = ui->plainTextEdit->toPlainText();
 
-    QString savingFileName = QFileDialog::getSaveFileName(this, "Save new input file", lastDir + "\\" + ui->tableWidget->item(ui->tableWidget->currentRow(), 0)->text(), filter);
+    QString savingFileName = QFileDialog::getSaveFileName(this, "Save file as", lastDir, filter);
 
     if(savingFileName.isEmpty() || savingFileName.isNull())
         return;
