@@ -3,5 +3,6 @@
         <file alias="programIcon">programIcon.ico</file>
         <file alias="orcaIcon">orcaIcon.ico</file>
         <file alias="sublimeIcon">sublimeTextIcon.ico</file>
+        <file alias="chemcraftIcon">chemcraftIcon.ico</file>
     </qresource>
 </RCC>

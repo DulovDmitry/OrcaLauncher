@@ -90,6 +90,8 @@ int TemplatesManager::indexOfKey(QString requestedKey)
         if (key.at(i) == requestedKey)
             return i;
     }
+
+    return 0;
 }
 
 void TemplatesManager::on_listWidget_itemClicked(QListWidgetItem *item)

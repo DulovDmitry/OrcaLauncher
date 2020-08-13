@@ -48,6 +48,7 @@ public:
     void loadSettings();
 
 
+
 private slots:
     void on_pushButton_clicked();
 
@@ -81,11 +82,15 @@ private slots:
 
     void parseFileWithTemplates();
 
+    void checkTemplatesManagerButton();
+
     void on_actionSet_path_to_templates_dat_triggered();
 
     int subtaskCounter(QString fileText);
 
     void on_toolButton_clicked();
+
+    void on_actionSet_path_to_Chemcraft_triggered();
 
 public slots:
     void launchSubl(int selectedRow);

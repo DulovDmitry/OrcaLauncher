@@ -30,6 +30,8 @@ public slots:
 
     void launchOrca2aim(bool b);
 
+    void launchChemcraft(bool b);
+
 private slots:
     void on_tableWidget_cellDoubleClicked(int row, int column);
 

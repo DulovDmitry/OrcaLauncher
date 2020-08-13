@@ -7,6 +7,7 @@
 #include <QMenu>
 #include <QFileInfo>
 #include <QProcess>
+#include <QGuiApplication>
 
 QStringList taskStatus;
 QStringList numberOfSubtask;
@@ -169,6 +170,24 @@ void InfoDialog::launchOrca2aim(bool b)
 
 }
 
+void InfoDialog::launchChemcraft(bool b)
+{
+    int current_row = ui->tableWidget->currentRow();
+    settings = new QSettings("ORG335a", "OrcaLauncher", this);
+    QString chemcraftDir = settings->value("CHEMCRAFT_PATH", "C:\\").toString();
+
+    QStringList arguments;
+    arguments.append(ui->tableWidget->item(current_row, 0)->text() + ".out");
+
+    QProcess *process = new QProcess(this);
+    process->setWorkingDirectory(pathsOfFiles.at(current_row));
+    process->setArguments(arguments);
+    process->setProgram(chemcraftDir);
+
+    process->start();
+    //process->waitForFinished(30000);
+}
+
 void InfoDialog::on_tableWidget_cellDoubleClicked(int row, int column)
 {
     if (!ui->pushButton_2->isEnabled())
@@ -204,9 +223,12 @@ void InfoDialog::on_pushButton_2_clicked()  //Delete task
         {
             int row = ui->tableWidget->currentRow();
 
+            emit deleteSelectedTask(row);
             ui->tableWidget->removeRow(row);
             pathsOfFiles.removeAt(row);
-            emit deleteSelectedTask(row + 1);
+
+            ui->pushButton->setDisabled(true);
+            ui->pushButton_2->setDisabled(true);
         }
         else
             return;
@@ -242,14 +264,18 @@ void InfoDialog::slotCustomMenuRequested(QPoint pos)
     QMenu *menu = new QMenu(this);
     QIcon *orcaIcon = new QIcon(":/new/prefix1/orcaIcon");
     QIcon *sublimeIcon = new QIcon(":/new/prefix1/sublimeIcon");
+    QIcon *chemcraftIcon = new QIcon(":/new/prefix1/chemcraftIcon");
 
     QAction *makeWfnFile = new QAction(*orcaIcon, "Make " + ui->tableWidget->item(ui->tableWidget->currentRow(), 0)->text() + ".wfn (orca_2aim)", this);
     QAction *launchSublime = new QAction(*sublimeIcon, "Open in Sublime Text 3", this);
+    QAction *launchChemcraft = new QAction(*chemcraftIcon, "Open in Chemcraft", this);
 
     connect(launchSublime, SIGNAL(triggered(bool)),
             this, SLOT(launchSublimeFromContextMenu(bool)));
     connect(makeWfnFile, SIGNAL(triggered(bool)),
             this, SLOT(launchOrca2aim(bool)));
+    connect(launchChemcraft, SIGNAL(triggered(bool)),
+            this, SLOT(launchChemcraft(bool)));
 
     on_tableWidget_cellClicked(ui->tableWidget->currentRow(), ui->tableWidget->currentColumn());
 
@@ -259,10 +285,12 @@ void InfoDialog::slotCustomMenuRequested(QPoint pos)
     if (ui->pushButton_2->isEnabled())
     {
         launchSublime->setDisabled(true);
+        launchChemcraft->setDisabled(true);
         makeWfnFile->setDisabled(true);
     }
 
     menu->addAction(launchSublime);
+    menu->addAction(launchChemcraft);
     menu->addAction(makeWfnFile);
     menu->popup(ui->tableWidget->viewport()->mapToGlobal(pos));
 }

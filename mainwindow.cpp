@@ -32,10 +32,11 @@ QStringList fileSubtask;
 QString lastDir;
 QString orcaDir;
 QString sublDir;
+QString chemcraftDir;
 QString templatesFileDir;
 QString filter = "Orca input files (*.inp) ;; All files (*.*)";
 
-QString aboutProgramText = "OrcaLauncher v1.2.1\n\n"
+QString aboutProgramText = "OrcaLauncher v1.2.2\n\n"
                            "This is an open source project designed to simplify commutication with ORCA quantum chemistry package\n\n"
                            "Author: Dmitry Dulov, dulov.dmitry@gmail.com";
 
@@ -60,8 +61,6 @@ MainWindow::MainWindow(QWidget *parent) :
             launcher, SLOT(launchProgram()));                                                       //
     connect(launcher, SIGNAL(programIsFinished()),
             this, SLOT(makeAllButtonAvaliable()));
-    //connect(launcher, SIGNAL(programIsFinished()),
-    //        this, SLOT(showNormal()));
 
     infodialog = new InfoDialog();                                                                  // создаю объект класса InfoDialog
     connect(this, SIGNAL(initializeTableInInfoWindow(QStringList,QStringList,QStringList)),                     // связываю сигнал класса MainWindow со слотом класса InfoDialog, который создает таблицу в окне
@@ -103,7 +102,7 @@ MainWindow::MainWindow(QWidget *parent) :
                                    "QTableView::item:focus { outline: none; border: none; }"
                                    "QTableView:focus {outline: none; }");
 
-    ui->plainTextEdit->setPlainText("\nSelect an input file in the left window (Input files queue) to start editing");
+    //ui->plainTextEdit->setPlainText("\nSelect an input file in the left window (Input files queue) to start editing");
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -132,6 +131,7 @@ void MainWindow::saveSettings()
 {
     settings->setValue("ORCA_PATH", orcaDir);
     settings->setValue("SUBL_PATH", sublDir);
+    settings->setValue("CHEMCRAFT_PATH", chemcraftDir);
     settings->setValue("LAST_DIR", lastDir);
     settings->setValue("TEMPLATES_DIR", templatesFileDir);
 }
@@ -140,6 +140,7 @@ void MainWindow::loadSettings()
 {
     orcaDir = settings->value("ORCA_PATH", "C:\\").toString();
     sublDir = settings->value("SUBL_PATH", "C:\\").toString();
+    chemcraftDir = settings->value("CHEMCRAFT_PATH", "C:\\").toString();
     lastDir = settings->value("LAST_DIR", "C:\\").toString();
     templatesFileDir = settings->value("TEMPLATES_DIR", "C:\\").toString();
 }
@@ -288,7 +289,7 @@ void MainWindow::on_tableWidget_cellClicked(int row, int column)                
     {
         ui->tableWidget->item(i, 0)->setFont(QFont("Segoe UI", 9, -1, false));
     }
-    ui->tableWidget->item(row, 0)->setFont(QFont("Segoe UI", 9, 100, false));
+    ui->tableWidget->item(row, 0)->setFont(QFont("Segoe UI", 9, 75, false));
 }
 
 void MainWindow::on_pushButton_4_clicked()                                                          // клик по кнопке Move UP
@@ -311,6 +312,7 @@ void MainWindow::on_pushButton_4_clicked()                                      
             QTableWidgetItem *nametableitem = new QTableWidgetItem(fileNames.at(i));
             QTableWidgetItem *threadstableitem = new QTableWidgetItem(fileThread.at(i));
 
+            threadstableitem->setTextAlignment(Qt::AlignCenter);
             ui->tableWidget->setItem(i, 0, nametableitem);
             ui->tableWidget->setItem(i, 1, threadstableitem);
         }
@@ -319,7 +321,7 @@ void MainWindow::on_pushButton_4_clicked()                                      
         {
             ui->tableWidget->item(i, 0)->setFont(QFont("Segoe UI", 9, -1, false));
         }
-        ui->tableWidget->item(current_row - 1, 0)->setFont(QFont("Segoe UI", 9, 100, false));
+        ui->tableWidget->item(current_row - 1, 0)->setFont(QFont("Segoe UI", 9, 75, false));
 
         ui->tableWidget->selectRow(current_row-1);
     }
@@ -346,6 +348,7 @@ void MainWindow::on_pushButton_5_clicked()                                      
             QTableWidgetItem *nametableitem = new QTableWidgetItem(fileNames.at(i));
             QTableWidgetItem *threadstableitem = new QTableWidgetItem(fileThread.at(i));
 
+            threadstableitem->setTextAlignment(Qt::AlignCenter);
             ui->tableWidget->setItem(i, 0, nametableitem);
             ui->tableWidget->setItem(i, 1, threadstableitem);
         }
@@ -354,7 +357,7 @@ void MainWindow::on_pushButton_5_clicked()                                      
         {
             ui->tableWidget->item(i, 0)->setFont(QFont("Segoe UI", 9, -1, false));
         }
-        ui->tableWidget->item(current_row + 1, 0)->setFont(QFont("Segoe UI", 9, 100, false));
+        ui->tableWidget->item(current_row + 1, 0)->setFont(QFont("Segoe UI", 9, 75, false));
 
         ui->tableWidget->selectRow(current_row + 1);
     }
@@ -362,7 +365,12 @@ void MainWindow::on_pushButton_5_clicked()                                      
 
 void MainWindow::on_actionSet_Orca_directory_triggered()
 {
-    orcaDir = QFileDialog::getOpenFileName(this, "Set path to orca.exe", orcaDir, "Executable files *.exe");
+    QString selectedOrcaDir = QFileDialog::getOpenFileName(this, "Set path to orca.exe", orcaDir, "Executable files *.exe");
+
+    if (selectedOrcaDir.isEmpty() || selectedOrcaDir.isNull())
+        return;
+
+    orcaDir = selectedOrcaDir;
     saveSettings();
 }
 
@@ -430,6 +438,7 @@ void MainWindow::on_pushButton_6_clicked()                                      
 
                 fileThread.replace(current_row, QString::number(i));
                 QTableWidgetItem *threadstableitem = new QTableWidgetItem(fileThread.at(current_row));
+                threadstableitem->setTextAlignment(Qt::AlignCenter);
                 ui->tableWidget->setItem(current_row, 1, threadstableitem);
             }
             else
@@ -487,6 +496,8 @@ void MainWindow::on_pushButton_8_clicked()                                      
     QTableWidgetItem *nametableitem = new QTableWidgetItem(fileNames.at(fileCounter));
     QTableWidgetItem *threadstableitem = new QTableWidgetItem(fileThread.at(fileCounter));
 
+    threadstableitem->setTextAlignment(Qt::AlignCenter);
+
     ui->tableWidget->setItem(fileCounter, 0, nametableitem);
     ui->tableWidget->setItem(fileCounter, 1, threadstableitem);
 
@@ -495,6 +506,12 @@ void MainWindow::on_pushButton_8_clicked()                                      
 
     ui->tableWidget->setColumnWidth(0, 214);                                                        // подстраиваем ширины колонок таблицы
     ui->tableWidget->setColumnWidth(1, 100);                                                        //
+
+    for (int j = 0; j < fileList.length(); j++)
+    {
+        ui->tableWidget->item(j, 0)->setFont(QFont("Segoe UI", 9, -1, false));
+    }
+    ui->tableWidget->item(fileList.length() - 1, 0)->setFont(QFont("Segoe UI", 9, 75, false));
 
     lastDir = filePaths.last();
 
@@ -615,18 +632,20 @@ void MainWindow::comboBoxFilling()
 
 void MainWindow::on_actionSet_path_to_templates_dat_triggered()
 {
-    templatesFileDir = QFileDialog::getOpenFileName(this, "Set path to the file with templates", templatesFileDir, "Data files *.dat");
+    QString selectedDir = QFileDialog::getOpenFileName(this, "Set path to the file with templates", templatesFileDir, "Data files *.dat");
 
-    if (templatesFileDir.isEmpty())
-    {
-        templatesFileDir = "C:\\";
+    if (selectedDir.isEmpty() || selectedDir.isNull())
         return;
-    }
+
+    templatesFileDir = selectedDir;
 
     if (templatesFileDir.contains("templates.dat"))
         parseFileWithTemplates();
     else
+    {
         QMessageBox::warning(this, "", "This is not the templates.dat");
+        templatesFileDir = "C:\\";
+    }
 }
 
 int MainWindow::subtaskCounter(QString fileText)
@@ -644,6 +663,8 @@ int MainWindow::subtaskCounter(QString fileText)
 
 void MainWindow::parseFileWithTemplates()
 {
+    checkTemplatesManagerButton();
+
     QFile jsonFile(templatesFileDir);
     if(!jsonFile.open(QIODevice::ReadOnly))
         return;
@@ -665,6 +686,14 @@ void MainWindow::parseFileWithTemplates()
     comboBoxFilling();
 }
 
+void MainWindow::checkTemplatesManagerButton()
+{
+    ui->toolButton->setDisabled(false);
+
+    if (templatesFileDir == "C:\\")
+        ui->toolButton->setDisabled(true);
+}
+
 void MainWindow::on_toolButton_clicked()
 {
     templatesmanager = new TemplatesManager(this);
@@ -673,4 +702,22 @@ void MainWindow::on_toolButton_clicked()
             this, SLOT(parseFileWithTemplates()));
 
     templatesmanager->show();
+}
+
+void MainWindow::on_actionSet_path_to_Chemcraft_triggered()
+{
+    QString selectedDir = QFileDialog::getOpenFileName(this, "Set path to the Chemcraft.exe", chemcraftDir, "Executable files *.exe");
+
+    if (selectedDir.isEmpty() || selectedDir.isNull())
+        return;
+
+    chemcraftDir = selectedDir;
+
+    if (chemcraftDir.contains("Chemcraft.exe"))
+        return;
+    else
+    {
+        QMessageBox::warning(this, "", "This is not the Chemcraft.exe");
+        chemcraftDir = "C:\\";
+    }
 }

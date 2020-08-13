@@ -122,11 +122,6 @@
        <string>Save changes</string>
       </property>
      </widget>
-     <zorder>plainTextEdit</zorder>
-     <zorder>listWidget</zorder>
-     <zorder>pushButton</zorder>
-     <zorder>pushButton_2</zorder>
-     <zorder>groupBox_2</zorder>
     </widget>
    </item>
    <item>
@@ -138,9 +133,6 @@
        <italic>false</italic>
        <bold>true</bold>
       </font>
-     </property>
-     <property name="focusPolicy">
-      <enum>Qt::NoFocus</enum>
      </property>
      <property name="title">
       <string>Add new template</string>
