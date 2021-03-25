@@ -7,8 +7,14 @@
     <x>0</x>
     <y>0</y>
     <width>351</width>
-    <height>260</height>
+    <height>265</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="minimumSize">
    <size>
@@ -33,6 +39,12 @@
      <width>331</width>
      <height>211</height>
     </rect>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>391</width>
+     <height>16777215</height>
+    </size>
    </property>
    <property name="editTriggers">
     <set>QAbstractItemView::NoEditTriggers</set>
@@ -75,9 +87,9 @@
   <widget class="QPushButton" name="pushButton">
    <property name="geometry">
     <rect>
-     <x>100</x>
+     <x>210</x>
      <y>240</y>
-     <width>80</width>
+     <width>71</width>
      <height>21</height>
     </rect>
    </property>
@@ -88,14 +100,64 @@
   <widget class="QPushButton" name="pushButton_2">
    <property name="geometry">
     <rect>
-     <x>10</x>
+     <x>120</x>
      <y>240</y>
-     <width>80</width>
+     <width>71</width>
      <height>21</height>
     </rect>
    </property>
    <property name="text">
     <string>Delete task</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="moveUpButton">
+   <property name="geometry">
+    <rect>
+     <x>60</x>
+     <y>240</y>
+     <width>40</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>40</width>
+     <height>16777215</height>
+    </size>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="moveDownButton">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>240</y>
+     <width>41</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>41</width>
+     <height>16777215</height>
+    </size>
+   </property>
+   <property name="text">
+    <string/>
    </property>
   </widget>
  </widget>

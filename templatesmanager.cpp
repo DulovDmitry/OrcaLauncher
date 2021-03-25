@@ -10,6 +10,7 @@ TemplatesManager::TemplatesManager(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::TemplatesManager)
 {
+    qDebug()<< "TemplatesManager constructor";
     ui->setupUi(this);
 
     setWindowTitle("Templates Manager");
@@ -23,12 +24,15 @@ TemplatesManager::TemplatesManager(QWidget *parent) :
     ui->pushButton_2->setEnabled(false);
     ui->listWidget->setFocus();
 
+    setWindowModality(Qt::WindowModal);
+
     parseJsonFile();
     fillListWidget();
 }
 
 TemplatesManager::~TemplatesManager()
 {
+    qDebug()<< "TemplatesManager destructor";
     delete ui;
 }
 

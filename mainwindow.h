@@ -5,34 +5,16 @@
 #include <QSettings>
 #include <QProcess>
 #include <QMap>
+#include <QTableWidgetItem>
+#include <QShortcut>
 #include "infodialog.h"
 #include "templatesmanager.h"
+#include "queue.h"
 
 namespace Ui {
 class MainWindow;
 }
 
-class OrcaLauncher : public QObject
-{
-    Q_OBJECT
-
-public:
-    explicit OrcaLauncher(QObject *parent = 0);
-
-public slots:
-    void launchProgram();
-
-signals:
-    void renewTableInInfoWindow();
-
-    void renewTableInInfoWindowWithError();
-
-    void programIsFinished();
-
-private:
-    QProcess *process;
-
-};
 
 
 class MainWindow : public QMainWindow
@@ -46,8 +28,6 @@ public:
     void saveSettings();
 
     void loadSettings();
-
-
 
 private slots:
     void on_pushButton_clicked();
@@ -86,25 +66,46 @@ private slots:
 
     void on_actionSet_path_to_templates_dat_triggered();
 
-    int subtaskCounter(QString fileText);
-
     void on_toolButton_clicked();
 
     void on_actionSet_path_to_Chemcraft_triggered();
 
+    void on_pushButton_7_clicked();
+
+    void orcaIsFinished();
+
+    void updateButtonsAvailability();
+
+    void setIconForThreadsNumber(QTableWidgetItem *threadstableitem, QTableWidgetItem *nametableitem);
+
+    void showThreadNumberWarningMessageBox();
+
+    void interchangeTableRows(int row1, int row2);
+
+    void refreshTableStyle();
+
+    short getThreadsNumberFromText(QString text);
+
+    void on_tableWidget_cellActivated(int row, int column);
+
+    void on_tableWidget_cellEntered(int row, int column);
+
+    void on_tableWidget_cellPressed(int row, int column);
+
+    void slotShortcutDelete();
+
+    void slotShortcutCtrlS();
+
+    void slotShortcutCtrlAltS();
+
+    void slotShortcutCtrlR();
+
 public slots:
-    void launchSubl(int selectedRow);
-
-    void makeAllButtonAvaliable();
-
-    void makeAllButtonUnavaliable();
-
-    void deleteFile(int fileNumber);
-
-    void killCurrentTask();
 
 signals:
-    void orcaLauncherSignal();
+    void orcaLauncherSignal(Queue _queue);
+
+    void addTasksToQueueSignal(Queue _queue);
 
     void initializeTableInInfoWindow(QStringList taskNames, QStringList subtaskNumber, QStringList taskThreads);
 
@@ -116,10 +117,36 @@ private:
     QSettings *settings;
     InfoDialog *infodialog;
     TemplatesManager *templatesmanager;
-    OrcaLauncher *launcher;
-    QThread *writingtofilethread;
+
+    Queue queue = Queue(this);
+
     QStringList templateKey;
     QStringList templateValue;
+
+    QShortcut *keyDelete;
+    QShortcut *keyCtrlS;
+    QShortcut *keyCtrlAltS;
+    QShortcut *keyCtrlR;
+
+    QString lastDir;
+    QString orcaDir;
+    QString sublDir;
+    QString chemcraftDir;
+    QString templatesFileDir;
+
+    bool OrcaIsInProgress = false;
+    bool showThreadNumberWarning;
+    bool threadNumberWarningWasShowed = false;
+    bool tooManyThreads = false;
+
+    int fileCounter = 0;
+    int avaliableThreads = 0;
+
+    QString filter = "Orca input files (*.inp) ;; All files (*.*)";
+
+    QString aboutProgramText = "OrcaLauncher v1.3.0\n\n"
+                               "This is an open source project designed to simplify commutication with ORCA quantum chemistry package\n\n"
+                               "Author: Dmitry Dulov, dulov.dmitry@gmail.com";
 };
 
 #endif // MAINWINDOW_H

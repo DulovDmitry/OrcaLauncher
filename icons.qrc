@@ -4,5 +4,8 @@
         <file alias="orcaIcon">orcaIcon.ico</file>
         <file alias="sublimeIcon">sublimeTextIcon.ico</file>
         <file alias="chemcraftIcon">chemcraftIcon.ico</file>
+        <file alias="warningIcon">warningIcon.ico</file>
+        <file alias="arrowDown">arrowDownIcon.ico</file>
+        <file alias="arrowUp">arrowUpIcon.ico</file>
     </qresource>
 </RCC>

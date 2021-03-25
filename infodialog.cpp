@@ -8,18 +8,34 @@
 #include <QFileInfo>
 #include <QProcess>
 #include <QGuiApplication>
-
-QStringList taskStatus;
-QStringList numberOfSubtask;
-int currentTask = 0;
-int currentSubtask = 0;
+#include <QDateTime>
+#include <QTextStream>
+#include <QThread>
+#include <QtDebug>
 
 InfoDialog::InfoDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::InfoDialog)
 {
+    qDebug()<< "InfoDialog constructor";
     ui->setupUi(this);
-    currentTask = 0;
+
+    queue = new Queue(this);
+    launcher = new OrcaLauncher(this);
+
+    writingtofilethread = new QThread(this);                                                        // создаю отдельный поток для записи .out файла из orca.exe
+    connect(this, SIGNAL(destroyed()),
+            writingtofilethread, SLOT(quit()));
+
+    launcher->moveToThread(writingtofilethread);                                                    // перемещаю объект класса OrcaLauncher в отдельный поток
+    writingtofilethread->start();
+
+    connect(this, SIGNAL(launchOrca(Queue *)),
+            launcher, SLOT(launchProgram(Queue *)));
+    connect(launcher, SIGNAL(updateTable()),
+            this, SLOT(updateTable()));
+    connect(launcher, SIGNAL(programIsFinished()),
+            this, SLOT(orcaIsFinished()));
 
     setWindowTitle("OrcaLauncher Queue status");
     QIcon *programIcon = new QIcon(":/new/prefix1/programIcon");
@@ -33,115 +49,223 @@ InfoDialog::InfoDialog(QWidget *parent) :
     ui->tableWidget->setStyleSheet("QTableView::item:selected { color: black; background: #e0f6ff; outline: none; border: none;}"
                                    "QTableView:focus {outline: none;}");
     ui->tableWidget->setFocusPolicy(Qt::NoFocus);
+    ui->tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
 
+    keyDelete = new QShortcut(this);
+    keyDelete->setKey(Qt::Key_Delete);
+    connect(keyDelete, SIGNAL(activated()), this, SLOT(slotShortcutDelete()));
 }
 
 void InfoDialog::closeEvent(QCloseEvent *event)
 {
     event->ignore();
 
-    if (currentTask == 0)
+    if (!(queue->status.contains(0) || queue->status.contains(1)))
     {
         event->accept();
         emit infoDialogIsClosing();
+        queue->clearQueue();
     }
     else
-    {
-        QMessageBox::warning(this, "Warning", QString("%1.inp is in progress!").arg(ui->tableWidget->item(currentTask - 1, 0)->text()));
-    }
+        QMessageBox::warning(this, "Warning", QString("%1.inp is in progress!").arg(ui->tableWidget->item(queue->status.indexOf(1), 0)->text()));
 }
 
 InfoDialog::~InfoDialog()
 {
     delete ui;
+    launcher->~OrcaLauncher();
+    qDebug()<< "InfoDialog destructor";
 }
 
-void InfoDialog::initializeTable(QStringList taskNames, QStringList taskPaths, QStringList taskThreads)        // метод, который создает таблицу в информационном окне
+OrcaLauncher::OrcaLauncher(QObject *parent)
 {
-    QRect rec = QApplication::desktop()->screenGeometry();
+    process = new QProcess(this);
+    qDebug()<< "OL constructor";
+}
 
-    setFixedHeight(taskNames.size()*25 + 80);
-    this->move(rec.width() - 366, rec.height() - taskNames.size()*25 - 160);                        // помещаем окно в правый нижний угол
+OrcaLauncher::~OrcaLauncher()
+{
+    qDebug()<< "OL destructor";
+}
 
-    ui->tableWidget->setFixedHeight(taskNames.size()*25 + 25);
-    ui->tableWidget->setRowCount(taskNames.size());
-    ui->tableWidget->setColumnWidth(0, 209);
-    ui->tableWidget->setColumnWidth(1, 50);
-    ui->tableWidget->setColumnWidth(2, 70);                                                         // настраиваем внешний вид таблицы
-    ui->pushButton_2->setGeometry(10, taskNames.size()*25 + 55, 70, 20);
+void OrcaLauncher::launchProgram(Queue *queue)  // метод, запускающий orca.exe
+{
+    settings = new QSettings("ORG335a", "OrcaLauncher", this);
+    QString orcaDir = settings->value("ORCA_PATH", "C:\\").toString();
+
+    for (int i = 0; i < queue->fileList.size(); ++i)
+    {
+        queue->status[i] = 1;
+
+        emit updateTable();
+
+        QString outFilePath = queue->filePaths.at(i) + "/" + queue->fileNames.at(i) + ".out";
+
+        QStringList arguments;
+            arguments.append(queue->fileNames.at(i) + ".inp");
+
+        process->setArguments(arguments);                                                           // устанавливаю параметр для запуска orca.exe
+        process->setProgram(orcaDir);                                                               //
+        process->setWorkingDirectory(queue->filePaths.at(i));                                              //
+
+        QFile outFile(outFilePath);                                                                 //
+        outFile.open(QIODevice::WriteOnly | QIODevice::Unbuffered);                                 // создаю и открываю для записи .out файл для orca.exe
+        outFile.write(getHeaderText(queue->fileList.at(i)));                                                             // печатаю в файл дату и время запуска программы с текущим .inp файлом
+
+        process->setProcessChannelMode(QProcess::MergedChannels);
+        process->start();                                                                           // запускаю orca.exe
+        queue->currentProcessID = process->processId();
+
+        while(process->waitForReadyRead(2000000000))                                                          // печатаю в .out файл выдачу orca.exe
+            outFile.write(process->readAll());
+
+        outFile.close();                                                                            // закрываю файл для записи
+
+        if (process->exitCode() == 0)
+            queue->status[i] = 2;
+        else
+            queue->status[i] = 3;
+
+        emit updateTable();
+    }
+
+    emit programIsFinished();
+}
+
+QByteArray OrcaLauncher::getHeaderText(QString inputFilePath)
+{
+    QString text;
+    QDateTime current = QDateTime::currentDateTime();
+    QString currentDateTime = current.toString("dd.MM.yyyy HH:mm:ss");
+
+    text = "#---------------------------------------------------------------\n"
+           "#\n"
+           "#  File created by OrcaLauncher\n"
+           "#  " + currentDateTime + "\n"
+           "#  Input file: " + inputFilePath + "\n"
+           "#\n"
+           "#---------------------------------------------------------------\n";
+
+    return text.toUtf8();
+}
+
+void InfoDialog::updateTable()
+{
+    int queueSize = queue->fileNames.size();
+
+    setFixedHeight(queueSize*25 + 80);
+
+    ui->tableWidget->setFixedHeight(queueSize*25 + 25);
+    ui->tableWidget->setRowCount(queueSize);
+
+    ui->pushButton_2->setGeometry(105, queueSize*25 + 55, 70, 20);
     ui->pushButton_2->setEnabled(false);
-    ui->pushButton->setGeometry(90, taskNames.size()*25 + 55, 70, 20);
+
+    ui->pushButton->setGeometry(185, queueSize*25 + 55, 70, 20);
     ui->pushButton->setEnabled(false);
 
-    for (int i = 0; i < taskNames.size(); ++i)                                                      // заполняем таблицу
-    {
-        QTableWidgetItem *nametableitem = new QTableWidgetItem(taskNames.at(i));
-        QTableWidgetItem *threadstableitem = new QTableWidgetItem(taskThreads.at(i));
-        QTableWidgetItem *statustableitem = new QTableWidgetItem("In queue");
+    ui->moveUpButton->setGeometry(10, queueSize*25 + 55, 70, 20);
+    ui->moveDownButton->setGeometry(55, queueSize*25 + 55, 70, 20);
 
-        threadstableitem->setTextAlignment(Qt::AlignCenter);
-        statustableitem->setTextAlignment(Qt::AlignCenter);
+    for (int i = 0; i < queueSize; ++i)                                                      // заполняем таблицу
+    {
+        QTableWidgetItem *nametableitem = new QTableWidgetItem(queue->fileNames.at(i));
+        QTableWidgetItem *threadstableitem = new QTableWidgetItem(queue->fileThread.at(i));
+        QTableWidgetItem *statustableitem = new QTableWidgetItem(getTaskStatus(queue->status.at(i)));
 
         ui->tableWidget->setItem(i, 0, nametableitem);
+
+        threadstableitem->setTextAlignment(Qt::AlignCenter);
         ui->tableWidget->setItem(i, 1, threadstableitem);
+
+        statustableitem->setTextAlignment(Qt::AlignCenter);
+        statustableitem->setBackgroundColor(getStatusColor(queue->status.at(i)));
         ui->tableWidget->setItem(i, 2, statustableitem);
 
         ui->tableWidget->setRowHeight(i, 25);
     }
 
-    ui->tableWidget->setColumnWidth(0, 194);
-
-    pathsOfFiles = taskPaths;
 }
 
-void InfoDialog::renewTable()                                                           // метод, который обновляет таблицу при завершении очередной задачи
-{    
-    QTableWidgetItem *statustableitem = new QTableWidgetItem("In progress");                    // выполняемой задаче изменяем статус на "In progress"
-    statustableitem->setBackgroundColor(QColor(255, 255, 0, 127));
-    statustableitem->setTextAlignment(Qt::AlignCenter);
-    ui->tableWidget->setItem(currentTask, 2, statustableitem);
+void InfoDialog::moveWindowIntoCorner()
+{
+    QRect rec = QApplication::desktop()->screenGeometry();
+    this->move(rec.width() - 356, rec.height() - queue->fileNames.size()*25 - 160);
+}
 
-    if(currentTask)
+void InfoDialog::updateWindowHeight()
+{
+    QRect rec = QApplication::desktop()->screenGeometry();
+    this->move(this->geometry().x(), rec.height() - queue->fileNames.size()*25 - 160);
+}
+
+QString InfoDialog::getTaskStatus(int status)
+{
+    switch (status)
     {
-        QTableWidgetItem *statustableitem2 = new QTableWidgetItem("Completed");                 // выполненной задаче изменяем статус на "Completed"
-        statustableitem2->setBackgroundColor(QColor(0, 255, 0, 127));
-        statustableitem2->setTextAlignment(Qt::AlignCenter);
-        ui->tableWidget->setItem(currentTask-1, 2, statustableitem2);
+    case 0: return "In queue";
+    case 1: return "In progress";
+    case 2: return "Completed";
+    case 3: return "Aborted";
     }
 
-    currentTask++;
-    ui->pushButton_2->setEnabled(false);
-    ui->pushButton->setEnabled(false);
+    return QString();
 }
 
-void InfoDialog::renewTableWithError()
+QColor InfoDialog::getStatusColor(int status)
 {
-    QTableWidgetItem *statustableitem = new QTableWidgetItem("In progress");
-    statustableitem->setBackgroundColor(QColor(255, 255, 0, 127));
-    statustableitem->setTextAlignment(Qt::AlignCenter);
-    ui->tableWidget->setItem(currentTask, 2, statustableitem);
-
-    if(currentTask)
+    switch (status)
     {
-        QTableWidgetItem *statustableitem2 = new QTableWidgetItem("Aborted");
-        statustableitem2->setBackgroundColor(QColor(255, 0, 0, 127));
-        statustableitem2->setTextAlignment(Qt::AlignCenter);
-        ui->tableWidget->setItem(currentTask-1, 2, statustableitem2);
+    case 0: return QColor(255, 255, 255);       // white
+    case 1: return QColor(255, 255, 0, 127);    // light yellow
+    case 2: return QColor(0, 255, 0, 127);      // light green
+    case 3: return QColor(255, 0, 0, 127);      // light red
     }
 
-    currentTask++;
-    ui->pushButton_2->setEnabled(false);
-    ui->pushButton->setEnabled(false);
+    return QColor(255, 255, 255);
 }
 
-void InfoDialog::resetToZero()
+void InfoDialog::orcaIsFinished()
 {
-    currentTask = 0;
+    emit orcaIsFinishedSignal();
+}
+
+void InfoDialog::launchProgram(Queue _queue)
+{
+    queue->clearQueue();
+    queue->addElementsInQueue(_queue);
+
+    updateTable();
+    setWidgetStyle();
+    moveWindowIntoCorner();
+
+    emit launchOrca(queue);
+}
+
+void InfoDialog::addTasksToQueue(Queue _queue)
+{
+    queue->addElementsInQueue(_queue);
+    updateTable();
+    if(windowIsTooTall())
+        updateWindowHeight();
 }
 
 void InfoDialog::launchSublimeFromContextMenu(bool b)
 {
-    emit sublLaunchSignal(ui->tableWidget->currentRow());
+    int current_row = ui->tableWidget->currentRow();
+    settings = new QSettings("ORG335a", "OrcaLauncher", this);
+    QString sublDir = settings->value("SUBL_PATH", "C:\\").toString();
+
+    QStringList outFilePath = QStringList(queue->filePaths.at(current_row) + "/" + queue->fileNames.at(current_row) + ".out");
+
+    QProcess *process = new QProcess(this);
+    process->setArguments(outFilePath);
+    process->setProgram(sublDir);
+
+    if (sublDir.contains("subl.exe"))
+        process->start();
+    else
+        QMessageBox::warning(this, "", "Please specify the path to the Sublime Text in the settings");
 }
 
 void InfoDialog::launchOrca2aim(bool b)
@@ -155,7 +279,7 @@ void InfoDialog::launchOrca2aim(bool b)
     arguments.append(ui->tableWidget->item(current_row, 0)->text());
 
     QProcess *process = new QProcess(this);
-    process->setWorkingDirectory(pathsOfFiles.at(current_row));
+    process->setWorkingDirectory(queue->filePaths.at(current_row));
     process->setArguments(arguments);
     process->setProgram(orca2aimDir);
 
@@ -166,8 +290,6 @@ void InfoDialog::launchOrca2aim(bool b)
         QMessageBox::information(this, "Done!", QString("The %1.wfn has been created").arg(ui->tableWidget->item(current_row, 0)->text()));
     else
         QMessageBox::critical(this, "Error", "Something went wrong :(");
-
-
 }
 
 void InfoDialog::launchChemcraft(bool b)
@@ -180,33 +302,28 @@ void InfoDialog::launchChemcraft(bool b)
     arguments.append(ui->tableWidget->item(current_row, 0)->text() + ".out");
 
     QProcess *process = new QProcess(this);
-    process->setWorkingDirectory(pathsOfFiles.at(current_row));
+    process->setWorkingDirectory(queue->filePaths.at(current_row));
     process->setArguments(arguments);
     process->setProgram(chemcraftDir);
 
-    process->start();
-    //process->waitForFinished(30000);
+    if (chemcraftDir.toLower().contains("chemcraft.exe"))
+        process->start();
+    else
+        QMessageBox::warning(this, "", "Please specify the path to the Chemcraft in the settings");
 }
 
 void InfoDialog::on_tableWidget_cellDoubleClicked(int row, int column)
 {
     if (!ui->pushButton_2->isEnabled())
-        sublLaunchSignal(row);
+        launchSublimeFromContextMenu(1);
 }
 
 void InfoDialog::on_tableWidget_cellClicked(int row, int column)
 {
-    if (currentTask)
+    if (queue->status.contains(0) || queue->status.contains(1))
     {
-        if (row == currentTask - 1)
-            ui->pushButton->setEnabled(true);
-        else
-            ui->pushButton->setEnabled(false);
-
-        if (row > currentTask - 1)
-            ui->pushButton_2->setEnabled(true);
-        else
-            ui->pushButton_2->setEnabled(false);
+        ui->pushButton_2->setEnabled(queue->status[row] ? false : true);
+        ui->pushButton->setEnabled(queue->status[row] == 1 ? true : false);
     }
 }
 
@@ -217,26 +334,20 @@ void InfoDialog::on_pushButton_2_clicked()  //Delete task
                                          QString("Delete %1.inp").arg(ui->tableWidget->itemAt(0, ui->tableWidget->currentRow())->text()),
                                          QString("Are you sure you want to delete %1.inp from queue?").arg(ui->tableWidget->item(ui->tableWidget->currentRow(), 0)->text()),
                                          QMessageBox::Yes|QMessageBox::No);
-    if (confirmation == QMessageBox::Yes)
+    if (confirmation == QMessageBox::Yes && ui->pushButton_2->isEnabled())
     {
-        if (ui->pushButton_2->isEnabled())
-        {
-            int row = ui->tableWidget->currentRow();
+        int row = ui->tableWidget->currentRow();
+        queue->removeQueueElementAt(row);
 
-            emit deleteSelectedTask(row);
-            ui->tableWidget->removeRow(row);
-            pathsOfFiles.removeAt(row);
+        ui->tableWidget->removeRow(row);
 
-            ui->pushButton->setDisabled(true);
-            ui->pushButton_2->setDisabled(true);
-        }
-        else
-            return;
+        updateTable();
+
+        ui->pushButton->setDisabled(true);
+        ui->pushButton_2->setDisabled(true);
     }
     else
-    {
         return;
-    }
 }
 
 void InfoDialog::on_pushButton_clicked()    //Kill process
@@ -246,17 +357,24 @@ void InfoDialog::on_pushButton_clicked()    //Kill process
                                          QString("Kill %1.inp").arg(ui->tableWidget->itemAt(0, ui->tableWidget->currentRow())->text()),
                                          QString("Are you sure you want to terminate %1.inp task?").arg(ui->tableWidget->item(ui->tableWidget->currentRow(), 0)->text()),
                                          QMessageBox::Yes|QMessageBox::No);
-    if (confirmation == QMessageBox::Yes)
-    {
-        if (ui->pushButton->isEnabled())
-            emit killSelectedProcess();
-        else
-            return;
-    }
+    if (confirmation == QMessageBox::Yes && ui->pushButton->isEnabled())
+        killCurrentProcess();
     else
-    {
         return;
-    }
+}
+
+void InfoDialog::killCurrentProcess()
+{
+    QStringList argum = QStringList("/PID");
+    argum.append(QString("%1").arg(queue->currentProcessID));
+    argum.append("/F");
+    argum.append("/T");
+
+    QProcess *taskKillerProcess = new QProcess(this);
+    taskKillerProcess->setArguments(argum);
+    taskKillerProcess->setProgram("taskkill");
+
+    taskKillerProcess->start();
 }
 
 void InfoDialog::slotCustomMenuRequested(QPoint pos)
@@ -293,4 +411,96 @@ void InfoDialog::slotCustomMenuRequested(QPoint pos)
     menu->addAction(launchChemcraft);
     menu->addAction(makeWfnFile);
     menu->popup(ui->tableWidget->viewport()->mapToGlobal(pos));
+}
+
+bool InfoDialog::windowIsTooTall()
+{
+    int a = this->geometry().y() + this->geometry().height();
+    return (a > QApplication::desktop()->screenGeometry().height() - 40) ? true : false;
+}
+
+void InfoDialog::setWidgetStyle()
+{
+    ui->tableWidget->setColumnWidth(0, 194);
+    ui->tableWidget->setColumnWidth(1, 50);
+    ui->tableWidget->setColumnWidth(2, 70);
+
+    ui->pushButton_2->setFixedSize(70, 20);
+    ui->pushButton->setFixedSize(70, 20);
+
+    ui->moveUpButton->setIcon(QIcon(":/new/prefix1/arrowUp"));
+    ui->moveUpButton->setFixedSize(40, 20);
+    ui->moveUpButton->setFocusPolicy(Qt::NoFocus);
+
+    ui->moveDownButton->setIcon(QIcon(":/new/prefix1/arrowDown"));
+    ui->moveDownButton->setFixedSize(40, 20);
+    ui->moveDownButton->setFocusPolicy(Qt::NoFocus);
+}
+
+void InfoDialog::on_moveDownButton_clicked()
+{
+    int currentTask = queue->status.indexOf(1);
+    int currentRow = ui->tableWidget->currentRow();
+
+    if (currentTask == -1) return;
+    if (currentRow <= currentTask) return;
+
+    if(currentRow < ui->tableWidget->rowCount() - 1)
+    {
+        queue->interchangeElementsAt(currentRow, currentRow + 1);
+        interchangeTableRows(currentRow, currentRow + 1);
+        ui->tableWidget->selectRow(currentRow + 1);
+    }
+}
+
+void InfoDialog::on_moveUpButton_clicked()
+{
+    int currentTask = queue->status.indexOf(1);
+    int currentRow = ui->tableWidget->currentRow();
+
+    if (currentTask == -1) return;
+    if (currentRow <= currentTask) return;
+
+    if(currentRow > currentTask + 1)
+    {
+        queue->interchangeElementsAt(currentRow, currentRow - 1);
+        interchangeTableRows(currentRow, currentRow - 1);
+        ui->tableWidget->selectRow(currentRow - 1);
+    }
+}
+
+void InfoDialog::interchangeTableRows(int row1, int row2)
+{
+    QTableWidgetItem *name1 = ui->tableWidget->takeItem(row1, 0);
+    QTableWidgetItem *threads1 = ui->tableWidget->takeItem(row1, 1);
+
+    QTableWidgetItem *name2 = ui->tableWidget->takeItem(row2, 0);
+    QTableWidgetItem *threads2 = ui->tableWidget->takeItem(row2, 1);
+
+    ui->tableWidget->setItem(row1, 0, name2);
+    ui->tableWidget->setItem(row1, 1, threads2);
+
+    ui->tableWidget->setItem(row2, 0, name1);
+    ui->tableWidget->setItem(row2, 1, threads1);
+}
+
+void InfoDialog::slotShortcutDelete()
+{
+    if (ui->pushButton_2->isEnabled())
+        on_pushButton_2_clicked();
+}
+
+void InfoDialog::on_tableWidget_cellActivated(int row, int column)
+{
+    on_tableWidget_cellClicked(row, column);
+}
+
+void InfoDialog::on_tableWidget_cellEntered(int row, int column)
+{
+    on_tableWidget_cellClicked(row, column);
+}
+
+void InfoDialog::on_tableWidget_cellPressed(int row, int column)
+{
+    on_tableWidget_cellClicked(row, column);
 }

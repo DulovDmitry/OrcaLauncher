@@ -3,11 +3,42 @@
 
 #include <QDialog>
 #include <QSettings>
+#include <QProcess>
+#include "qtablewidget.h"
+#include <QKeyEvent>
+#include <QShortcut>
+
+#include "queue.h"
 
 
 namespace Ui {
 class InfoDialog;
 }
+
+class OrcaLauncher : public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit OrcaLauncher(QObject *parent = 0);
+    ~OrcaLauncher();
+
+public slots:
+    void launchProgram(Queue *queue);
+
+private slots:
+    QByteArray getHeaderText(QString inputFilePath);
+
+signals:
+    void updateTable();
+
+    void programIsFinished();
+
+private:
+    QProcess *process;
+    QSettings *settings;
+
+};
 
 class InfoDialog : public QDialog
 {
@@ -18,13 +49,21 @@ public:
     ~InfoDialog();
 
 public slots:
-    void initializeTable(QStringList taskNames, QStringList taskPaths, QStringList taskThreads);
+    void updateTable();
 
-    void renewTable();
+    void moveWindowIntoCorner();
 
-    void renewTableWithError();
+    void updateWindowHeight();
 
-    void resetToZero();
+    QString getTaskStatus(int status);
+
+    QColor getStatusColor(int status);
+
+    void orcaIsFinished();
+
+    void launchProgram(Queue _queue);
+
+    void addTasksToQueue(Queue _queue);
 
     void launchSublimeFromContextMenu(bool b);
 
@@ -41,16 +80,36 @@ private slots:
 
     void on_pushButton_clicked();
 
+    void killCurrentProcess();
+
     void slotCustomMenuRequested(QPoint pos);
 
+    bool windowIsTooTall();
+
+    void setWidgetStyle();
+
+    void on_moveDownButton_clicked();
+
+    void on_moveUpButton_clicked();
+
+    void interchangeTableRows(int row1, int row2);
+
+    void slotShortcutDelete();
+
+    void on_tableWidget_cellActivated(int row, int column);
+
+    void on_tableWidget_cellEntered(int row, int column);
+
+    void on_tableWidget_cellPressed(int row, int column);
+
 signals:
+    void launchOrca (Queue *q);
+
     void sublLaunchSignal(int selectedRow);
 
-    void deleteSelectedTask(int selectedRow);
-
-    void killSelectedProcess();
-
     void infoDialogIsClosing();
+
+    void orcaIsFinishedSignal();
 
 protected slots:
     void closeEvent(QCloseEvent *event);
@@ -58,7 +117,11 @@ protected slots:
 private:
     Ui::InfoDialog *ui;
     QSettings *settings;
+    OrcaLauncher *launcher;
+    Queue *queue;
+    QThread *writingtofilethread;
     QStringList pathsOfFiles;
+    QShortcut *keyDelete;
 };
 
 #endif // INFODIALOG_H
