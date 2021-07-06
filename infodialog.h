@@ -48,6 +48,8 @@ public:
     explicit InfoDialog(QWidget *parent = 0);
     ~InfoDialog();
 
+    short dialogID;
+
 public slots:
     void updateTable();
 
@@ -96,6 +98,8 @@ private slots:
 
     void slotShortcutDelete();
 
+    void slotShortcutEsc();
+
     void on_tableWidget_cellActivated(int row, int column);
 
     void on_tableWidget_cellEntered(int row, int column);
@@ -116,12 +120,14 @@ protected slots:
 
 private:
     Ui::InfoDialog *ui;
-    QSettings *settings;
     OrcaLauncher *launcher;
     Queue *queue;
     QThread *writingtofilethread;
     QStringList pathsOfFiles;
+
     QShortcut *keyDelete;
+    QShortcut *keyEsc;
 };
+
 
 #endif // INFODIALOG_H

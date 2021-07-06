@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "infodialog.h"
 #include <thread>
 #include <QFileDialog>
 #include <QStringList>
@@ -32,14 +31,14 @@ MainWindow::MainWindow(QWidget *parent) :
     qDebug()<< "Main constructor";
     ui->setupUi(this);
 
-    infodialog = new InfoDialog();
-
     settings = new QSettings("ORG335a", "OrcaLauncher", this);
     loadSettings();
 
     parseFileWithTemplates();
 
     qRegisterMetaType<Queue>("Queue");
+
+    infodialog = new InfoDialog();
 
     connect(this, SIGNAL(orcaLauncherSignal(Queue)),
             infodialog, SLOT(launchProgram(Queue)));
@@ -67,8 +66,16 @@ MainWindow::MainWindow(QWidget *parent) :
                                    "QTableView::item:focus { outline: none; border: none; }"
                                    "QTableView:focus {outline: none; }");
     ui->tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+    ui->tableWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     updateButtonsAvailability();
+
+    if (QCoreApplication::arguments().size() > 1)
+    {
+        QStringList arg = QCoreApplication::arguments();
+        arg.removeAt(0);
+        processFileList(arg);
+    }
 
     keyDelete = new QShortcut(this);
     keyDelete->setKey(Qt::Key_Delete);
@@ -85,6 +92,10 @@ MainWindow::MainWindow(QWidget *parent) :
     keyCtrlR = new QShortcut(this);
     keyCtrlR->setKey(Qt::CTRL + Qt::Key_R);
     connect(keyCtrlR, SIGNAL(activated()), this, SLOT(slotShortcutCtrlR()));
+
+    keyCtrlO = new QShortcut(this);
+    keyCtrlO->setKey(Qt::CTRL + Qt::Key_O);
+    connect(keyCtrlO, SIGNAL(activated()), this, SLOT(slotShortcutCtrlO()));
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -92,11 +103,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
     event->ignore();
 
     if (!OrcaIsInProgress)
-    {
         event->accept();
-        if (infodialog->isEnabled())
-            infodialog->~InfoDialog();
-    }
     else
         QMessageBox::warning(this, "Warning", "All tasks must be completed");
 }
@@ -104,6 +111,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 MainWindow::~MainWindow()
 {
     saveSettings();
+    delete infodialog;
     delete ui;
     qDebug()<< "Main destructor";
 }
@@ -128,26 +136,15 @@ void MainWindow::loadSettings()
     showThreadNumberWarning = settings->value("showThreadNumberWarning", true).toBool();
 }
 
-void MainWindow::orcaIsFinished()
+void MainWindow::processFileList(QStringList loadedFileNames)
 {
-    OrcaIsInProgress = false;
-    updateButtonsAvailability();
-}
-
-void MainWindow::on_pushButton_clicked()        // клик по кнопке Load Files
-{
-    QStringList loadedFileNames = QFileDialog::getOpenFileNames(this, "Add files", lastDir, filter);    // записываем имена+пути открытых файлов
-    queue.fileList.append(loadedFileNames);                                                                     // добавляем имена+пути открытых файлов в общий список
-
-    if (loadedFileNames.isEmpty())
-        return;
-
+    queue.fileList.append(loadedFileNames);
     ui->tableWidget->setRowCount(queue.fileList.size());                                                          // создаем строки в таблице по количеству открытых файлов
 
-    for (fileCounter; fileCounter < queue.fileList.size(); ++fileCounter)                             // главный цикл
+    for (; fileCounter < queue.fileList.size(); ++fileCounter)                             // главный цикл
     {
         QFileInfo fileInfo(queue.fileList.at(fileCounter));                                                       //
-        queue.fileNames.append(fileInfo.baseName());                                                              // разделяем имя файла и его путь по отдельным спискам
+        queue.fileNames.append(fileInfo.completeBaseName());                                                              // разделяем имя файла и его путь по отдельным спискам
         queue.filePaths.append(fileInfo.absolutePath());                                                          //
         queue.status.append(0);
 
@@ -171,7 +168,7 @@ void MainWindow::on_pushButton_clicked()        // клик по кнопке Lo
         ui->tableWidget->setRowHeight(fileCounter, 25);
     }
 
-    ui->tableWidget->setColumnWidth(0, 214);                                                        // подстраиваем ширины колонок таблицы
+    ui->tableWidget->setColumnWidth(0, (ui->tableWidget->rowCount() > 9) ? 210 : 214);                                                        // подстраиваем ширины колонок таблицы
     ui->tableWidget->setColumnWidth(1, 100);                                                        //
 
     lastDir = queue.filePaths.last();                                                                     // запоминаем директорию последнего файла для удобства
@@ -180,6 +177,22 @@ void MainWindow::on_pushButton_clicked()        // клик по кнопке Lo
 
     if(showThreadNumberWarning && !threadNumberWarningWasShowed && tooManyThreads)
         showThreadNumberWarningMessageBox();
+}
+
+void MainWindow::orcaIsFinished()
+{
+    OrcaIsInProgress = false;
+    updateButtonsAvailability();
+}
+
+void MainWindow::on_pushButton_clicked()        // клик по кнопке Load Files
+{
+    QStringList loadedFileNames = QFileDialog::getOpenFileNames(this, "Add files", lastDir, filter);    // записываем имена+пути открытых файлов
+
+    if (loadedFileNames.isEmpty())
+        return;
+
+    processFileList(loadedFileNames);
 }
 
 void MainWindow::on_pushButton_2_clicked()                                                          // клик по кнопке Delete
@@ -193,6 +206,8 @@ void MainWindow::on_pushButton_2_clicked()                                      
     fileCounter--;
     updateButtonsAvailability();
     ui->tableWidget->clearSelection();
+
+    ui->tableWidget->setColumnWidth(0, (ui->tableWidget->rowCount() > 9) ? 210 : 214);
 
     if (ui->tableWidget->rowCount() == 0)
     {
@@ -281,18 +296,18 @@ void MainWindow::on_pushButton_9_clicked()                                      
         QMessageBox::warning(this, "", "Queue is empty");
         return;
     }
-
-    if (orcaDir.contains("orca.exe"))                                           // проверка на наличие пути именно к orca.exe
+    if (!orcaDir.contains("orca.exe"))                                           // проверка на наличие пути именно к orca.exe
     {
-        emit orcaLauncherSignal(queue);                                              // запуск метода, который запускает orca.exe
-        OrcaIsInProgress = true;
-        updateButtonsAvailability();
-        infodialog->show();                                                     // отображение информационного окна
-        this->showMinimized();                                                  // свертывание главного окна
-        ui->plainTextEdit->clear();
-    }
-    else
         QMessageBox::warning(this, "", "Please specify the path to orca.exe in the settings");
+        return;
+    }
+
+    emit orcaLauncherSignal(queue);                                              // запуск метода, который запускает orca.exe
+    OrcaIsInProgress = true;
+    updateButtonsAvailability();
+    infodialog->show();                                                     // отображение информационного окна
+    this->showMinimized();                                                  // свертывание главного окна
+    ui->plainTextEdit->clear();
 }
 
 void MainWindow::on_pushButton_6_clicked()                                                          // клик по кнопке Save
@@ -369,7 +384,7 @@ void MainWindow::on_pushButton_8_clicked()                                      
     queue.status.append(0);
 
     QFileInfo fileInfo(queue.fileList.at(fileCounter));
-    queue.fileNames.append(fileInfo.baseName());
+    queue.fileNames.append(fileInfo.completeBaseName());
     queue.filePaths.append(fileInfo.absolutePath());
 
     queue.fileThread.append(QString::number(getThreadsNumberFromText(actualText)));
@@ -389,8 +404,7 @@ void MainWindow::on_pushButton_8_clicked()                                      
     ui->tableWidget->setRowHeight(fileCounter, 25);
     ui->tableWidget->selectRow(fileCounter);
 
-    ui->tableWidget->setColumnWidth(0, 214);
-    ui->tableWidget->setColumnWidth(1, 100);
+    ui->tableWidget->setColumnWidth(0, (ui->tableWidget->rowCount() > 9) ? 210 : 214);
 
     refreshTableStyle();
     ui->tableWidget->item(queue.fileList.length() - 1, 0)->setFont(QFont("Segoe UI", 9, 75, false));
@@ -407,7 +421,8 @@ void MainWindow::on_pushButton_8_clicked()                                      
 
 void MainWindow::on_actionAbout_triggered()                                                         // клик по кнопке About
 {
-    QMessageBox::about(this, "About OrcaLauncher", aboutProgramText);
+    aboutdialog = new AboutDialog(this);
+    aboutdialog->show();
 }
 
 void MainWindow::on_actionSet_path_to_Sublime_Text_triggered()
@@ -646,4 +661,9 @@ void MainWindow::slotShortcutCtrlR()
 {
     if(ui->pushButton_9->isEnabled())
         on_pushButton_9_clicked();
+}
+
+void MainWindow::slotShortcutCtrlO()
+{
+    on_pushButton_clicked();
 }

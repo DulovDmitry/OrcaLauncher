@@ -52,3 +52,13 @@ void Queue::clearQueue()
     this->fileThread.clear();
     this->status.clear();
 }
+
+QString Queue::getListOfFileNames()
+{
+    QString string;
+    for(int i = 0; i < this->fileNames.size(); i++)
+    {
+        string += QString("%1").arg(i+1) + ". " + this->fileNames.at(i) + ".inp\n";
+    }
+    return string;
+}

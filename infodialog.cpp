@@ -13,11 +13,17 @@
 #include <QThread>
 #include <QtDebug>
 
+//short InfoDialog::numberOfDialogs = 0;
+//short InfoDialog::numberOfActiveDialogs = 0;
+
 InfoDialog::InfoDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::InfoDialog)
 {
-    qDebug()<< "InfoDialog constructor";
+//    numberOfDialogs++;
+//    numberOfActiveDialogs++;
+//    dialogID = numberOfDialogs;
+    qDebug()<< "InfoDialog constructor ";
     ui->setupUi(this);
 
     queue = new Queue(this);
@@ -50,10 +56,15 @@ InfoDialog::InfoDialog(QWidget *parent) :
                                    "QTableView:focus {outline: none;}");
     ui->tableWidget->setFocusPolicy(Qt::NoFocus);
     ui->tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+    ui->tableWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     keyDelete = new QShortcut(this);
     keyDelete->setKey(Qt::Key_Delete);
     connect(keyDelete, SIGNAL(activated()), this, SLOT(slotShortcutDelete()));
+
+    keyEsc = new QShortcut(this);
+    keyEsc->setKey(Qt::Key_Escape);
+    connect(keyEsc, SIGNAL(activated()), this, SLOT(slotShortcutEsc()));
 }
 
 void InfoDialog::closeEvent(QCloseEvent *event)
@@ -72,8 +83,10 @@ void InfoDialog::closeEvent(QCloseEvent *event)
 
 InfoDialog::~InfoDialog()
 {
+    writingtofilethread->terminate();
+    delete launcher;
+    delete queue;
     delete ui;
-    launcher->~OrcaLauncher();
     qDebug()<< "InfoDialog destructor";
 }
 
@@ -85,13 +98,14 @@ OrcaLauncher::OrcaLauncher(QObject *parent)
 
 OrcaLauncher::~OrcaLauncher()
 {
+    delete process;
     qDebug()<< "OL destructor";
 }
 
 void OrcaLauncher::launchProgram(Queue *queue)  // метод, запускающий orca.exe
 {
-    settings = new QSettings("ORG335a", "OrcaLauncher", this);
-    QString orcaDir = settings->value("ORCA_PATH", "C:\\").toString();
+    QSettings settings("ORG335a", "OrcaLauncher", this);
+    QString orcaDir = settings.value("ORCA_PATH", "C:\\").toString();
 
     for (int i = 0; i < queue->fileList.size(); ++i)
     {
@@ -185,6 +199,7 @@ void InfoDialog::updateTable()
         ui->tableWidget->setRowHeight(i, 25);
     }
 
+    ui->tableWidget->setColumnWidth(0, (ui->tableWidget->rowCount() > 9) ? 190 : 194);
 }
 
 void InfoDialog::moveWindowIntoCorner()
@@ -253,8 +268,8 @@ void InfoDialog::addTasksToQueue(Queue _queue)
 void InfoDialog::launchSublimeFromContextMenu(bool b)
 {
     int current_row = ui->tableWidget->currentRow();
-    settings = new QSettings("ORG335a", "OrcaLauncher", this);
-    QString sublDir = settings->value("SUBL_PATH", "C:\\").toString();
+    QSettings settings("ORG335a", "OrcaLauncher", this);
+    QString sublDir = settings.value("SUBL_PATH", "C:\\").toString();
 
     QStringList outFilePath = QStringList(queue->filePaths.at(current_row) + "/" + queue->fileNames.at(current_row) + ".out");
 
@@ -271,8 +286,8 @@ void InfoDialog::launchSublimeFromContextMenu(bool b)
 void InfoDialog::launchOrca2aim(bool b)
 {
     int current_row = ui->tableWidget->currentRow();
-    settings = new QSettings("ORG335a", "OrcaLauncher", this);
-    QFileInfo fileInfo(settings->value("ORCA_PATH", "C:\\").toString());
+    QSettings settings("ORG335a", "OrcaLauncher", this);
+    QFileInfo fileInfo(settings.value("ORCA_PATH", "C:\\").toString());
     QString orca2aimDir = fileInfo.absolutePath() + "\\orca_2aim.exe";
 
     QStringList arguments;
@@ -295,14 +310,15 @@ void InfoDialog::launchOrca2aim(bool b)
 void InfoDialog::launchChemcraft(bool b)
 {
     int current_row = ui->tableWidget->currentRow();
-    settings = new QSettings("ORG335a", "OrcaLauncher", this);
-    QString chemcraftDir = settings->value("CHEMCRAFT_PATH", "C:\\").toString();
+    QSettings settings("ORG335a", "OrcaLauncher", this);
+    QString chemcraftDir = settings.value("CHEMCRAFT_PATH", "C:\\").toString();
 
     QStringList arguments;
-    arguments.append(ui->tableWidget->item(current_row, 0)->text() + ".out");
+    //arguments.append(ui->tableWidget->item(current_row, 0)->text() + ".out");
+    arguments.append(queue->filePaths.at(current_row) + "/" + queue->fileNames.at(current_row) + ".out");
 
     QProcess *process = new QProcess(this);
-    process->setWorkingDirectory(queue->filePaths.at(current_row));
+    //process->setWorkingDirectory(queue->filePaths.at(current_row));
     process->setArguments(arguments);
     process->setProgram(chemcraftDir);
 
@@ -421,7 +437,7 @@ bool InfoDialog::windowIsTooTall()
 
 void InfoDialog::setWidgetStyle()
 {
-    ui->tableWidget->setColumnWidth(0, 194);
+    //ui->tableWidget->setColumnWidth(0, 194);
     ui->tableWidget->setColumnWidth(1, 50);
     ui->tableWidget->setColumnWidth(2, 70);
 
@@ -449,7 +465,7 @@ void InfoDialog::on_moveDownButton_clicked()
     {
         queue->interchangeElementsAt(currentRow, currentRow + 1);
         interchangeTableRows(currentRow, currentRow + 1);
-        ui->tableWidget->selectRow(currentRow + 1);
+        ui->tableWidget->setCurrentCell(currentRow + 1, 0);
     }
 }
 
@@ -465,7 +481,7 @@ void InfoDialog::on_moveUpButton_clicked()
     {
         queue->interchangeElementsAt(currentRow, currentRow - 1);
         interchangeTableRows(currentRow, currentRow - 1);
-        ui->tableWidget->selectRow(currentRow - 1);
+        ui->tableWidget->setCurrentCell(currentRow - 1, 0);
     }
 }
 
@@ -488,6 +504,11 @@ void InfoDialog::slotShortcutDelete()
 {
     if (ui->pushButton_2->isEnabled())
         on_pushButton_2_clicked();
+}
+
+void InfoDialog::slotShortcutEsc()
+{
+
 }
 
 void InfoDialog::on_tableWidget_cellActivated(int row, int column)

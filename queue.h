@@ -19,10 +19,13 @@ public:
 
     void clearQueue();
 
+    QString getListOfFileNames();
+
     QStringList fileList;
     QStringList fileNames;
     QStringList filePaths;
     QStringList fileBodies;
+    QStringList fileBodiesChanged;
     QStringList fileThread;
 
     QVector<int> status;    // 0 - in queue

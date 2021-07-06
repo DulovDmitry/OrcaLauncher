@@ -7,9 +7,12 @@
 #include <QMap>
 #include <QTableWidgetItem>
 #include <QShortcut>
+#include <QLinkedList>
 #include "infodialog.h"
+#include "aboutdialog.h"
 #include "templatesmanager.h"
 #include "queue.h"
+#include "choosequeuedialog.h"
 
 namespace Ui {
 class MainWindow;
@@ -29,7 +32,11 @@ public:
 
     void loadSettings();
 
+    void processFileList(QStringList loadedFileNames);
+
 private slots:
+    void closeEvent(QCloseEvent *event);
+
     void on_pushButton_clicked();
 
     void on_pushButton_2_clicked();
@@ -100,7 +107,7 @@ private slots:
 
     void slotShortcutCtrlR();
 
-public slots:
+    void slotShortcutCtrlO();
 
 signals:
     void orcaLauncherSignal(Queue _queue);
@@ -109,13 +116,12 @@ signals:
 
     void initializeTableInInfoWindow(QStringList taskNames, QStringList subtaskNumber, QStringList taskThreads);
 
-protected slots:
-    void closeEvent(QCloseEvent *event);
 
 private:
     Ui::MainWindow *ui;
     QSettings *settings;
     InfoDialog *infodialog;
+    AboutDialog *aboutdialog;
     TemplatesManager *templatesmanager;
 
     Queue queue = Queue(this);
@@ -127,6 +133,7 @@ private:
     QShortcut *keyCtrlS;
     QShortcut *keyCtrlAltS;
     QShortcut *keyCtrlR;
+    QShortcut *keyCtrlO;
 
     QString lastDir;
     QString orcaDir;
@@ -142,11 +149,7 @@ private:
     int fileCounter = 0;
     int avaliableThreads = 0;
 
-    QString filter = "Orca input files (*.inp) ;; All files (*.*)";
-
-    QString aboutProgramText = "OrcaLauncher v1.3.0\n\n"
-                               "This is an open source project designed to simplify commutication with ORCA quantum chemistry package\n\n"
-                               "Author: Dmitry Dulov, dulov.dmitry@gmail.com";
+    const QString filter = "Orca input files (*.inp) ;; All files (*.*)";
 };
 
 #endif // MAINWINDOW_H
