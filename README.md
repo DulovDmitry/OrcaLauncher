@@ -25,7 +25,7 @@ OrcaLauncher is an open-source project. It distributes under the GNU GPL license
 <a id="userguide"></a>
 ### User guide
 
-Quick start tutorial and detailed guide with program screenshots are avaliable in the <a href="https://drive.google.com/file/d/16z8px4H3UQu0tft2lUO4J_0Up3P_SXG5/view?usp=sharing" target="_blank" rel="noopener noreferrer">OrcaLauncher User Guide</a>.
+Quick start tutorial and detailed guide with program screenshots are avaliable in the <a href="https://github.com/DulovDmitry/OrcaLauncher/blob/master/OrcaLauncher%20User%20Guide.pdf" target="_blank" rel="noopener noreferrer">OrcaLauncher User Guide</a>.
 
 <a id="installation"></a>
 ### Installation and start
