@@ -7,8 +7,6 @@
 OrcaLauncher is the program that simplifies your communication with ORCA quantum chemistry package. It is available **only for Windows platform** to date!
 OrcaLauncher is an open-source project. It distributes under the GNU GPL license.
 
-### Contents
-
 - [Features](#features)
 - [User guide](#userguide)
 - [Installation and start](#installation)
@@ -27,7 +25,7 @@ OrcaLauncher is an open-source project. It distributes under the GNU GPL license
 <a id="userguide"></a>
 ### User guide
 
-Quick start tutorial and detailed guide with program screenshots are avaliable in the [OrcaLauncher User Guide](https://drive.google.com/file/d/1eW0oCzhQxZamXncQSuOs6B1kUY1avfdR/view?usp=sharing).
+Quick start tutorial and detailed guide with program screenshots are avaliable in the <a href="https://drive.google.com/file/d/16z8px4H3UQu0tft2lUO4J_0Up3P_SXG5/view?usp=sharing" target="_blank" rel="noopener noreferrer">OrcaLauncher User Guide</a>.
 
 <a id="installation"></a>
 ### Installation and start
@@ -47,23 +45,39 @@ A task may become either “Completed” or “Aborted” depending on the resul
 <a id="screenshots"></a>
 ### Screenshots
 
+<p align="center">
 <img src="https://i.postimg.cc/R0MhP9Ft/F3.png" alt="F3.png" />
-<center>Main window</center>
+</p>
+<p align="center">
+Main window
+</p>
 
 ***
 
-<center><img src="https://i.postimg.cc/nVs4KKNJ/F9.png" alt="F9.png" width="300"/></center>
-<center>Executing queue in the status window</center>
+<p align="center">
+<img src="https://i.postimg.cc/nVs4KKNJ/F9.png" alt="F9.png" width="350"/>
+</p>
+<p align="center">
+Executing queue in the status window
+</p>
 
 ***
 
-<center><img src="https://i.postimg.cc/50y0V38N/F5.png" alt="F5.png" width="300"/></center>
-<center>Context menu of the status window</center>
+<p align="center">
+<img src="https://i.postimg.cc/50y0V38N/F5.png" alt="F5.png" width="350"/>
+</p>
+<p align="center">
+Context menu of the status window
+</p>
 
 ***
 
-<center><img src="https://i.postimg.cc/rmHpFr9G/F6.png" alt="F6.png" width="450"/></center>
-<center>Templates manager</center>
+<p align="center">
+<img src="https://i.postimg.cc/rmHpFr9G/F6.png" alt="F6.png" width="500"/>
+</p>
+<p align="center">
+Templates manager
+</p>
 
 ***
 
