@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/new/prefix1">
+        <file alias="programIcon">programIcon.ico</file>
+        <file alias="orcaIcon">orcaIcon.ico</file>
+        <file alias="sublimeIcon">sublimeTextIcon.ico</file>
+        <file alias="chemcraftIcon">chemcraftIcon.ico</file>
+        <file alias="warningIcon">warningIcon.ico</file>
+        <file alias="arrowDown">arrowDownIcon.ico</file>
+        <file alias="arrowUp">arrowUpIcon.ico</file>
+        <file alias="avogadroIcon">avogadroIcon.ico</file>
+        <file alias="explorerIcon">explorerIcon.ico</file>
+    </qresource>
+</RCC>

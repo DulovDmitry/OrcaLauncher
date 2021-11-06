@@ -1,16 +1,16 @@
 {
     "templates": [
         {
-            "body": "!PBE def2-SVP def2/J ENERGY TightSCF\r\n\r\n%pal\r\n    nprocs N\r\nend\r\n\r\n*xyzfile 0 1 your_file.xyz\r\n",
-            "title": "Single point"
-        },
-        {
-            "body": "!PBE def2-SVP def2/J OPT TightOPT TightSCF\r\n\r\n%pal\r\n    nprocs N\r\nend\r\n\r\n*xyzfile 0 1 your_file.xyz\r\n",
+            "body": "!PBE D4 def2-SVP OPT TightOPT TightSCF\n\n%pal\n\tnprocs N\nend\n\n*xyzfile 0 1 your_file.xyz\n",
             "title": "Optimization"
         },
         {
-            "body": "!PBE def2-SVP def2/J VeryTightSCF Freq\r\n\r\n%pal\r\n    nprocs N\r\nend\r\n\r\n*xyzfile 0 1 your_file.xyz\r\n",
+            "body": "!PBE D4 def2-SVP VeryTightSCF Freq\n\n%pal\n\tnprocs N\nend\n\n*xyzfile 0 1 your_file.xyz\n",
             "title": "Hessian"
+        },
+        {
+            "body": "!PBE D4 def2-TZVP VeryTightSCF\n\n%pal\n\tnprocs N\nend\n \n*xyzfile 0 1 your_file.xyz\n",
+            "title": "Single point"
         }
     ]
 }
