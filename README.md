@@ -34,11 +34,11 @@ Download the OrcaLauncher installer ([install_orcalauncher_x64.exe](https://gith
 Once you run *OrcaLauncher.exe*, you should specify the path to *orca.exe* on your computer (Settings > Set path to orca.exe). Do it only once at first OrcaLauncher run.
 Add your ORCA input files by clicking “Add files”. Loaded files appear on the left-hand side of the program (*Input files queue preview*). If you want to correct some input file or just take a look at it, you should left-click on the filename in the table. The content of the input file appears on the right-hand side of the program. *If you change an input file, don’t forget to save the updates (“Save” button)!*
 
-![F3.png](https://i.postimg.cc/R0MhP9Ft/F3.png "OrcaLauncher main window")
+![F3.png](https://github.com/DulovDmitry/OrcaLauncher/blob/master/screenshots/F3.png "OrcaLauncher main window")
 
 OrcaLauncher is ready to take off! Press “Run orca” button. The main window is hidden and the status window appears in the corner of the screen. Queued tasks will be started one by one following the initial order. Outfiles appear in the same directory as input files located and with the same base names.
 
-![F4.png](https://i.postimg.cc/MGdTN4MF/F4.png "Evolution of executing queue")
+![F4.png](https://github.com/DulovDmitry/OrcaLauncher/blob/master/screenshots/F4.png "Evolution of executing queue")
 
 A task may become either “Completed” or “Aborted” depending on the result of ORCA calculations. You can open your outfile in the file explorer by right-click > “Show outfile in explorer”.
 
@@ -46,7 +46,7 @@ A task may become either “Completed” or “Aborted” depending on the resul
 ### Screenshots
 
 <p align="center">
-<img src="https://i.postimg.cc/R0MhP9Ft/F3.png" alt="F3.png" />
+<img src="https://github.com/DulovDmitry/OrcaLauncher/blob/master/screenshots/F3.png" alt="F3.png" />
 </p>
 <p align="center">
 Main window
@@ -55,7 +55,7 @@ Main window
 ***
 
 <p align="center">
-<img src="https://i.postimg.cc/nVs4KKNJ/F9.png" alt="F9.png" width="350"/>
+<img src="https://github.com/DulovDmitry/OrcaLauncher/blob/master/screenshots/F9.png" alt="F9.png" width="350"/>
 </p>
 <p align="center">
 Executing queue in the status window
@@ -64,7 +64,7 @@ Executing queue in the status window
 ***
 
 <p align="center">
-<img src="https://i.postimg.cc/50y0V38N/F5.png" alt="F5.png" width="350"/>
+<img src="https://github.com/DulovDmitry/OrcaLauncher/blob/master/screenshots/F5.png" alt="F5.png" width="350"/>
 </p>
 <p align="center">
 Context menu of the status window
@@ -73,7 +73,7 @@ Context menu of the status window
 ***
 
 <p align="center">
-<img src="https://i.postimg.cc/rmHpFr9G/F6.png" alt="F6.png" width="500"/>
+<img src="https://github.com/DulovDmitry/OrcaLauncher/blob/master/screenshots/F6.png" alt="F6.png" width="500"/>
 </p>
 <p align="center">
 Templates manager
